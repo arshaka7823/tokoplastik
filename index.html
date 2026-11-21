@@ -666,6 +666,19 @@
                             </div>
                         </div>
 
+                        <!-- KHUSUS FITUR BARANG MASUK: SUPPLIER & TEMPO KE SUPPLIER -->
+                        <div id="wrapSupplierInbound" class="hidden col-span-1 md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4 bg-emerald-50/60 p-4 rounded-xl border border-emerald-200">
+                            <div>
+                                <label class="block text-xs font-bold text-emerald-900 mb-1"><i class="fa-solid fa-truck-field mr-1"></i> Nama Supplier</label>
+                                <input type="text" id="frmSupplier" list="supplierDatalist" class="w-full border border-emerald-300 rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-emerald-500 outline-none font-medium" placeholder="Pilih atau ketik nama supplier...">
+                                <datalist id="supplierDatalist"></datalist>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-emerald-900 mb-1"><i class="fa-solid fa-bell mr-1 text-amber-600"></i> Pengingat Jatuh Tempo Supplier (Opsional)</label>
+                                <input type="date" id="frmTempoSupplier" class="w-full border border-emerald-300 rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-emerald-500 outline-none font-medium">
+                            </div>
+                        </div>
+
                         <!-- KHUSUS FITUR BARANG RUSAK -->
                         <div id="wrapKeteranganRusak" class="col-span-1 md:col-span-2 hidden">
                             <label class="block text-xs font-medium text-slate-500 mb-1">Keterangan / Alasan (Wajib Diisi)</label>
@@ -740,7 +753,72 @@
         </div>
     </template>
 
-    <!-- 4. DATATABLE (Database Stock) -->
+    <!-- 4. LAPORAN LENGKAP (PENJUALAN, TUNAI, QRIS, TEMPO, MASUK, KELUAR, RUSAK) -->
+    <template id="tpl-laporan">
+        <div class="space-y-6 animate-fade-in pb-24 md:pb-6">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-5 border-b border-slate-100 pb-4">
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-800"><i class="fa-solid fa-file-invoice-dollar text-blue-600 mr-2"></i>Pusat Laporan Transaksi</h2>
+                        <p class="text-xs text-slate-500">Laporan lengkap Penjualan (Tunai, QRIS, Tempo), Barang Masuk, Barang Keluar, dan Barang Rusak.</p>
+                    </div>
+                    <div class="flex gap-2 flex-wrap">
+                        <button onclick="refreshGlobalData(this)" class="bg-blue-50 text-blue-600 px-3 py-2 rounded-lg text-xs font-bold hover:bg-blue-100 transition flex items-center"><i class="fa-solid fa-rotate-right mr-1.5"></i> Refresh</button>
+                        <button onclick="exportLaporan('pdf')" class="bg-red-50 text-red-600 px-3 py-2 rounded-lg text-xs font-bold hover:bg-red-100 transition flex items-center"><i class="fa-solid fa-file-pdf mr-1.5"></i> Cetak PDF</button>
+                        <button onclick="exportLaporan('excel')" class="bg-green-50 text-green-600 px-3 py-2 rounded-lg text-xs font-bold hover:bg-green-100 transition flex items-center"><i class="fa-solid fa-file-excel mr-1.5"></i> Export Excel</button>
+                    </div>
+                </div>
+
+                <!-- Tab Kategori Laporan -->
+                <div class="flex overflow-x-auto hide-scroll gap-2 pb-3 mb-4 border-b border-slate-100">
+                    <button onclick="switchLaporanTab('all_sales')" id="lapTab-all_sales" class="px-3.5 py-2 text-xs font-bold rounded-lg bg-blue-600 text-white whitespace-nowrap transition">Semua Penjualan</button>
+                    <button onclick="switchLaporanTab('tunai')" id="lapTab-tunai" class="px-3.5 py-2 text-xs font-bold rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 whitespace-nowrap transition"><i class="fa-solid fa-money-bill-wave mr-1 text-emerald-600"></i> Penjualan Cash/Tunai</button>
+                    <button onclick="switchLaporanTab('qris')" id="lapTab-qris" class="px-3.5 py-2 text-xs font-bold rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 whitespace-nowrap transition"><i class="fa-solid fa-qrcode mr-1 text-blue-600"></i> Penjualan QRIS</button>
+                    <button onclick="switchLaporanTab('tempo')" id="lapTab-tempo" class="px-3.5 py-2 text-xs font-bold rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 whitespace-nowrap transition"><i class="fa-solid fa-calendar-days mr-1 text-amber-600"></i> Penjualan Tempo</button>
+                    <button onclick="switchLaporanTab('inbound')" id="lapTab-inbound" class="px-3.5 py-2 text-xs font-bold rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 whitespace-nowrap transition"><i class="fa-solid fa-boxes-packing mr-1 text-teal-600"></i> Barang Masuk & Supplier</button>
+                    <button onclick="switchLaporanTab('outbound')" id="lapTab-outbound" class="px-3.5 py-2 text-xs font-bold rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 whitespace-nowrap transition"><i class="fa-solid fa-truck-fast mr-1 text-rose-600"></i> Barang Keluar</button>
+                    <button onclick="switchLaporanTab('rusak')" id="lapTab-rusak" class="px-3.5 py-2 text-xs font-bold rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 whitespace-nowrap transition"><i class="fa-solid fa-triangle-exclamation mr-1 text-orange-600"></i> Barang Rusak</button>
+                </div>
+
+                <!-- Filter Bar Laporan -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-5">
+                    <div class="md:col-span-2 flex items-center gap-2">
+                        <input type="date" id="lapStartDate" onchange="renderLaporanData()" class="border border-slate-300 rounded-lg px-3 py-2 text-sm w-full outline-none focus:ring-2 focus:ring-blue-500">
+                        <span class="text-xs text-slate-400 font-bold">s/d</span>
+                        <input type="date" id="lapEndDate" onchange="renderLaporanData()" class="border border-slate-300 rounded-lg px-3 py-2 text-sm w-full outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <select id="lapFilterResto" onchange="renderLaporanData()" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white outline-none focus:ring-2 focus:ring-blue-500"></select>
+                    </div>
+                    <div class="relative">
+                        <i class="fa-solid fa-search absolute left-3 top-3 text-slate-400 text-xs"></i>
+                        <input type="text" id="lapSearchInput" onkeyup="renderLaporanData()" class="w-full pl-8 pr-3 py-2 border border-slate-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500" placeholder="Cari nota, barang, supplier...">
+                    </div>
+                </div>
+
+                <!-- Ringkasan Angka Laporan -->
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5" id="laporanSummaryBox"></div>
+
+                <!-- Tabel Laporan -->
+                <div class="overflow-x-auto border border-slate-200 rounded-xl">
+                    <table class="w-full text-left text-sm whitespace-nowrap min-w-max">
+                        <thead class="bg-slate-50 text-slate-600 border-b border-slate-200" id="lapTableHead"></thead>
+                        <tbody class="divide-y divide-slate-100" id="lapTableBody"></tbody>
+                    </table>
+                    <div id="lapEmptyState" class="hidden p-8 text-center text-slate-400 text-sm">Tidak ada data laporan pada periode/filter ini.</div>
+                </div>
+                <div class="pt-4 flex justify-between items-center">
+                    <span class="text-xs text-slate-500" id="lapPageInfo">Menampilkan 0 data</span>
+                    <div class="flex gap-1">
+                        <button onclick="changeLapPage(-1)" class="px-3 py-1 rounded bg-slate-100 text-slate-600 hover:bg-slate-200"><i class="fa-solid fa-chevron-left"></i></button>
+                        <button onclick="changeLapPage(1)" class="px-3 py-1 rounded bg-slate-100 text-slate-600 hover:bg-slate-200"><i class="fa-solid fa-chevron-right"></i></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <!-- 5. DATATABLE (Database Stock) -->
     <template id="tpl-datatable">
         <div class="bg-white rounded-2xl shadow-sm border border-slate-100 flex flex-col animate-fade-in mb-24 md:mb-6">
             <div class="p-5 border-b border-slate-100">
@@ -811,6 +889,7 @@
             <div class="flex overflow-x-auto hide-scroll gap-2 border-b border-slate-200 pb-2 shrink-0 mt-2">
                 <button onclick="switchSetTab('app')" id="tabBtn-app" class="px-4 py-2 text-sm font-medium rounded-lg bg-blue-50 text-blue-600 transition-colors whitespace-nowrap">Aplikasi & Struk</button>
                 <button onclick="switchSetTab('resto')" id="tabBtn-resto" class="px-4 py-2 text-sm font-medium rounded-lg text-slate-500 hover:bg-slate-50 transition-colors whitespace-nowrap">Manajemen Toko</button>
+                <button onclick="switchSetTab('supplier')" id="tabBtn-supplier" class="px-4 py-2 text-sm font-medium rounded-lg text-slate-500 hover:bg-slate-50 transition-colors whitespace-nowrap">Data Supplier</button>
                 <button onclick="switchSetTab('kategori')" id="tabBtn-kategori" class="px-4 py-2 text-sm font-medium rounded-lg text-slate-500 hover:bg-slate-50 transition-colors whitespace-nowrap">Kategori Barang</button>
                 <button onclick="switchSetTab('user')" id="tabBtn-user" class="px-4 py-2 text-sm font-medium rounded-lg text-slate-500 hover:bg-slate-50 transition-colors whitespace-nowrap">Pengguna Akses</button>
                 <button onclick="switchSetTab('master')" id="tabBtn-master" class="px-4 py-2 text-sm font-medium rounded-lg text-slate-500 hover:bg-slate-50 transition-colors whitespace-nowrap">Master Data Barang</button>
@@ -880,6 +959,38 @@
                     </div>
                     <div class="border border-slate-200 rounded-xl overflow-x-auto mt-4">
                         <table class="w-full text-left text-sm whitespace-nowrap min-w-max"><thead class="bg-slate-50 border-b border-slate-200"><tr><th class="px-5 py-3">Nama Toko</th><th class="px-5 py-3 w-24 text-center">Aksi</th></tr></thead><tbody id="tblRestoList" class="divide-y divide-slate-100"></tbody></table>
+                    </div>
+                </div>
+
+                <!-- Data Supplier Tab -->
+                <div id="setTab-supplier" class="hidden space-y-5">
+                    <h3 class="text-lg font-bold text-slate-700 border-b pb-2">Manajemen Data Supplier</h3>
+                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div>
+                            <label class="block text-xs font-medium text-slate-600 mb-1">Nama Supplier *</label>
+                            <input type="text" id="setSupNama" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white outline-none focus:ring-2 focus:ring-blue-500" placeholder="PT. Sumber Makmur">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-600 mb-1">No. Telepon / WA</label>
+                            <input type="text" id="setSupTelp" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white outline-none focus:ring-2 focus:ring-blue-500" placeholder="0812-3456-7890">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-600 mb-1">Alamat Lengkap</label>
+                            <input type="text" id="setSupAlamat" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white outline-none focus:ring-2 focus:ring-blue-500" placeholder="Jl. Industri Raya No. 12">
+                        </div>
+                        <div class="md:col-span-3">
+                            <button onclick="saveNewSupplier()" class="w-full md:w-auto bg-blue-600 text-white px-6 py-2 rounded-lg text-sm font-bold hover:bg-blue-700 transition flex items-center justify-center gap-2">
+                                <i class="fa-solid fa-plus"></i> <span>Simpan Supplier</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="border border-slate-200 rounded-xl overflow-x-auto mt-4">
+                        <table class="w-full text-left text-sm whitespace-nowrap min-w-max">
+                            <thead class="bg-slate-50 border-b border-slate-200">
+                                <tr><th class="px-5 py-3">Nama Supplier</th><th class="px-5 py-3">No. Telepon</th><th class="px-5 py-3">Alamat</th><th class="px-5 py-3 w-24 text-center">Aksi</th></tr>
+                            </thead>
+                            <tbody id="tblSupplierList" class="divide-y divide-slate-100"></tbody>
+                        </table>
                     </div>
                 </div>
 
@@ -975,7 +1086,7 @@
     <script>
         // --- REAL STATE MANAGEMENT ---
         const State = {
-            user: null, settings: {}, restos: [], users: [], masterData: [], stockData: [],
+            user: null, settings: {}, restos: [], suppliers: [], users: [], masterData: [], stockData: [],
             inHistory: [], outHistory: [], barangRusak: [], salesHistory: [], categories: [],
             currentView: 'dashboard', transactionType: 'inbound',
             
@@ -986,6 +1097,7 @@
             tableData: [], filteredData: [], currentPage: 1, itemsPerPage: 10,
             scanHistFiltered: [], scanHistPage: 1,
             posHistFiltered: [], posHistPage: 1,
+            lapTab: 'all_sales', lapFiltered: [], lapPage: 1,
             
             // Dashboard Recent History Pagination State
             dashRecentData: [], dashRecentPage: 1,
@@ -997,7 +1109,7 @@
         let masterDataFiltered = [];
 
         // === Konfigurasi API URL (Cache-Buster untuk Sinkronisasi Real-time HP/Tablet/Laptop) ===
-        const API_URL = "https://script.google.com/macros/s/AKfycbytzj3ZH3lVAiavVyivZ3XRAM1M_UEUIgSehp7BNTS7e0FjbhOXWmgU9hmbtYjg7fPF/exec";
+        const API_URL = "https://script.google.com/macros/s/AKfycbwFxIjSNyr7DqdoTo-jHJUvIei5Tz-ZZT3_U4QgoCPzcPJ6EsyzbknGdqvL6DGa6rfa/exec";
 
         // --- PWA & IOS INSTALLABILITY SETUP ---
         let deferredInstallPrompt = null;
@@ -1270,6 +1382,7 @@
             if (localReceiptSettings.store_footer && !State.settings.store_footer) State.settings.store_footer = localReceiptSettings.store_footer;
 
             State.restos = data.restos || State.restos || []; 
+            State.suppliers = data.suppliers || State.suppliers || [];
             State.users = data.users || State.users || [];
             
             // Selalu ambil harga & minStock terbaru langsung dari database server agar sinkron di semua perangkat
@@ -1393,6 +1506,8 @@
                 
                 if (State.currentView === 'dashboard') {
                     refreshDashboard();
+                } else if (State.currentView === 'laporan') {
+                    renderLaporanData();
                 } else if (State.currentView === 'penjualan') {
                     filterPosHistory();
                     setupDropdownBahan('pos');
@@ -1401,6 +1516,7 @@
                     setupDropdownBahan('frm'); 
                 } else if (State.currentView === 'settings') {
                     renderRestoTable(); 
+                    renderSupplierTable();
                     renderUserTable(); 
                     renderMasterTable();
                     renderCategoryTable();
@@ -1433,11 +1549,11 @@
             if(h >= 11 && h < 15) greeting = 'Selamat Siang'; else if(h >= 15 && h < 18) greeting = 'Selamat Sore'; else if(h >= 18) greeting = 'Selamat Malam';
             if(State.user) document.getElementById('greetingText').textContent = `${greeting}, ${State.user.name.split(' ')[0]}`;
         }
-
-        // MENU NAVIGASI (Menu Pengiriman Barang & Adjustment sudah dihilangkan, Penjualan Kasir ditambahkan)
+        // MENU NAVIGASI
         const Menus = [
             { id: 'dashboard', icon: 'fa-chart-pie', label: 'Dashboard', roles: ['Admin', 'Admin Warehouse', 'Manager', 'Store Manager', 'Stocker'] },
             { id: 'penjualan', icon: 'fa-cash-register', label: 'Kasir Penjualan', roles: ['Admin', 'Manager', 'Store Manager', 'Stocker'] },
+            { id: 'laporan', icon: 'fa-file-invoice-dollar', label: 'Laporan', roles: ['Admin', 'Admin Warehouse', 'Manager', 'Store Manager', 'Stocker'] },
             { id: 'database', icon: 'fa-database', label: 'Database Stock', roles: ['Admin', 'Admin Warehouse', 'Manager', 'Store Manager', 'Stocker'] },
             { id: 'inbound', icon: 'fa-boxes-packing', label: 'Barang Masuk', roles: ['Admin', 'Manager', 'Store Manager', 'Stocker'] },
             { id: 'outbound', icon: 'fa-truck-fast', label: 'Barang Keluar', roles: ['Admin', 'Admin Warehouse', 'Manager', 'Store Manager', 'Stocker'] },
@@ -1538,6 +1654,7 @@
             
             if (viewId === 'dashboard') loadDashboard(container);
             else if (viewId === 'penjualan') loadPenjualanView(container);
+            else if (viewId === 'laporan') loadLaporanView(container);
             else if (viewId === 'inbound' || viewId === 'outbound' || viewId === 'rusak') loadScanView(container, viewId);
             else if (viewId === 'settings') loadSettingsView(container);
             else loadDataTableView(container, viewId);
@@ -2845,6 +2962,7 @@
                 document.getElementById('scanPageTitle').textContent = 'Input Barang Hilang / Rusak';
                 document.getElementById('scanHistTitle').textContent = 'Riwayat Barang Rusak';
                 document.getElementById('wrapKeteranganRusak').classList.remove('hidden');
+                document.getElementById('wrapSupplierInbound').classList.add('hidden');
                 document.getElementById('stockInfoWrap').classList.remove('hidden');
                 document.getElementById('btnSubmitTrx').classList.replace('bg-blue-600', 'bg-orange-600');
                 document.getElementById('btnSubmitTrx').classList.replace('hover:bg-blue-700', 'hover:bg-orange-700');
@@ -2852,10 +2970,13 @@
             } else if (type === 'inbound') {
                 document.getElementById('scanPageTitle').textContent = 'Input Barang Masuk';
                 document.getElementById('scanHistTitle').textContent = 'Riwayat Barang Masuk';
+                document.getElementById('wrapSupplierInbound').classList.remove('hidden');
                 document.getElementById('btnImportCsvScan').classList.remove('hidden');
+                populateSupplierDatalist();
             } else {
                 document.getElementById('scanPageTitle').textContent = 'Input Barang Keluar';
                 document.getElementById('scanHistTitle').textContent = 'Riwayat Barang Keluar';
+                document.getElementById('wrapSupplierInbound').classList.add('hidden');
                 document.getElementById('stockInfoWrap').classList.remove('hidden');
                 document.getElementById('btnSubmitTrx').classList.replace('bg-blue-600', 'bg-rose-600');
                 document.getElementById('btnSubmitTrx').classList.replace('hover:bg-blue-700', 'hover:bg-rose-700');
@@ -2879,6 +3000,8 @@
             const scanHistHead = document.getElementById('scanHistHead');
             if (type === 'rusak') {
                 scanHistHead.innerHTML = `<tr><th class="px-5 py-3 font-medium">Tanggal</th><th class="px-5 py-3 font-medium">Barang</th><th class="px-5 py-3 font-medium">Qty</th><th class="px-5 py-3 font-medium">Keterangan</th><th class="px-5 py-3 font-medium">Toko</th><th class="px-5 py-3 font-medium text-center">Aksi</th></tr>`;
+            } else if (type === 'inbound') {
+                scanHistHead.innerHTML = `<tr><th class="px-5 py-3 font-medium">Tanggal</th><th class="px-5 py-3 font-medium">Barang</th><th class="px-5 py-3 font-medium">Qty</th><th class="px-5 py-3 font-medium">Supplier & Tempo</th><th class="px-5 py-3 font-medium">Toko</th><th class="px-5 py-3 font-medium text-center">Aksi</th></tr>`;
             } else {
                 scanHistHead.innerHTML = `<tr><th class="px-5 py-3 font-medium">Tanggal</th><th class="px-5 py-3 font-medium">Kode Barang</th><th class="px-5 py-3 font-medium">Nama Barang</th><th class="px-5 py-3 font-medium">Kategori</th><th class="px-5 py-3 font-medium">Qty</th><th class="px-5 py-3 font-medium">Toko</th><th class="px-5 py-3 font-medium text-center">Aksi</th></tr>`;
             }
@@ -2886,6 +3009,12 @@
             initScanHistory();
             setupDropdownBahan('frm');
             resetFormUI();
+        }
+
+        function populateSupplierDatalist() {
+            const dl = document.getElementById('supplierDatalist');
+            if (!dl) return;
+            dl.innerHTML = (State.suppliers || []).map(s => `<option value="${s.NamaSupplier}">${s.NoTelp ? s.NoTelp + ' - ' : ''}${s.Alamat || ''}</option>`).join('');
         }
 
         // --- IMPORT CSV LOGIC ---
@@ -3292,6 +3421,8 @@
                 satuan: document.getElementById('frmSatuan').value, 
                 petugas: State.user.name, 
                 resto: document.getElementById('frmResto').value,
+                supplier: document.getElementById('frmSupplier') ? document.getElementById('frmSupplier').value.trim() : '-',
+                tempoSupplier: document.getElementById('frmTempoSupplier') ? document.getElementById('frmTempoSupplier').value : '-',
                 keterangan: document.getElementById('frmKeterangan') ? document.getElementById('frmKeterangan').value : '-'
             };
 
@@ -3403,7 +3534,7 @@
                 }
 
                 if(searchVal) {
-                    const combinedStr = `${r.KodeBahan} ${r.NamaBahan} ${r.Petugas} ${r.Keterangan || ''}`.toLowerCase();
+                    const combinedStr = `${r.KodeBahan} ${r.NamaBahan} ${r.Petugas} ${r.Keterangan || ''} ${r.Supplier || ''}`.toLowerCase();
                     if(!combinedStr.includes(searchVal)) matchSearch = false;
                 }
                 
@@ -3435,6 +3566,19 @@
                             <button onclick="editTransactionModal('${r.ID}', 'rusak')" class="text-amber-500 hover:bg-amber-50 p-1.5 rounded mr-1" title="Edit Riwayat"><i class="fa-solid fa-pen"></i></button>
                             <button onclick="deleteTransaction('${r.ID}', '${State.transactionType}')" class="text-red-500 hover:bg-red-50 p-1.5 rounded" title="Hapus & Rollback Stock"><i class="fa-solid fa-trash"></i></button>
                             </td></tr>`;
+                        } else if (State.transactionType === 'inbound') {
+                            const tempoBadge = (r.TempoSupplier && r.TempoSupplier !== '-')
+                                ? `<div class="text-[10px] font-bold text-amber-700 mt-0.5"><i class="fa-solid fa-clock mr-1"></i>Tempo: ${r.TempoSupplier}</div>`
+                                : '';
+                            return `<tr class="hover:bg-slate-50"><td class="px-5 py-3 text-xs">${r.Tanggal}</td><td class="px-5 py-3"><div class="font-medium">${r.NamaBahan}</div><div class="text-[10px] font-mono text-slate-500">${r.KodeBahan}</div></td>
+                            <td class="px-5 py-3 font-bold text-emerald-600">${Math.abs(parseFloat(r.Qty))} <span class="text-xs font-normal">${r.Satuan}</span></td>
+                            <td class="px-5 py-3 text-xs"><div class="font-semibold text-slate-700">${r.Supplier || '-'}</div>${tempoBadge}</td>
+                            <td class="px-5 py-3 text-xs">${r.Resto}</td>
+                            <td class="px-5 py-3 text-center whitespace-nowrap">
+                            <button onclick="viewTransactionDetail('${r.ID}')" class="text-blue-500 hover:bg-blue-50 p-1.5 rounded mr-1" title="Lihat Detail"><i class="fa-solid fa-eye"></i></button>
+                            <button onclick="editTransactionModal('${r.ID}', 'inbound')" class="text-amber-500 hover:bg-amber-50 p-1.5 rounded mr-1" title="Edit Riwayat"><i class="fa-solid fa-pen"></i></button>
+                            <button onclick="deleteTransaction('${r.ID}', 'inbound')" class="text-red-500 hover:bg-red-50 p-1.5 rounded" title="Hapus & Rollback Stock"><i class="fa-solid fa-trash"></i></button>
+                            </td></tr>`;
                         } else {
                             return `<tr class="hover:bg-slate-50"><td class="px-5 py-3 text-xs">${r.Tanggal}</td><td class="px-5 py-3 font-mono text-xs">${r.KodeBahan}</td>
                             <td class="px-5 py-3 font-medium">${r.NamaBahan}</td><td class="px-5 py-3 text-xs">${r.Kategori}</td>
@@ -3460,23 +3604,48 @@
 
         function editTransactionModal(id, type) {
             const list = type === 'inbound' ? State.inHistory : (type === 'outbound' ? State.outHistory : State.barangRusak);
-            const trx = list.find(t => t.ID === id);
-            if (!trx) return;
+            const trx = list.find(t => String(t.ID).trim() === String(id).trim());
+            if (!trx) {
+                return Swal.fire('Error', 'Data transaksi tidak ditemukan.', 'error');
+            }
 
             const masterItem = State.masterData.find(m => String(m.KodeBahan).trim().toUpperCase() === String(trx.KodeBahan).trim().toUpperCase());
             const satuanOpts = masterItem
-                ? `<option value="${masterItem.SatuanBesar}" ${trx.Satuan === masterItem.SatuanBesar ? 'selected' : ''}>${masterItem.SatuanBesar}</option>
-                   <option value="${masterItem.SatuanKecil}" ${trx.Satuan === masterItem.SatuanKecil ? 'selected' : ''}>${masterItem.SatuanKecil}</option>`
+                ? `<option value="${masterItem.SatuanBesar}" ${String(trx.Satuan).trim().toUpperCase() === String(masterItem.SatuanBesar).trim().toUpperCase() ? 'selected' : ''}>${masterItem.SatuanBesar}</option>
+                   <option value="${masterItem.SatuanKecil}" ${String(trx.Satuan).trim().toUpperCase() === String(masterItem.SatuanKecil).trim().toUpperCase() ? 'selected' : ''}>${masterItem.SatuanKecil}</option>`
                 : `<option value="${trx.Satuan}" selected>${trx.Satuan}</option>`;
 
             const restoOpts = (State.user.role === 'Admin' || State.user.role === 'Admin Warehouse')
-                ? State.restos.map(r => `<option value="${r}" ${String(r).toUpperCase() === String(trx.Resto).toUpperCase() ? 'selected' : ''}>${r}</option>`).join('')
+                ? State.restos.map(r => `<option value="${r}" ${String(r).trim().toUpperCase() === String(trx.Resto).trim().toUpperCase() ? 'selected' : ''}>${r}</option>`).join('')
                 : `<option value="${trx.Resto}" selected>${trx.Resto}</option>`;
 
-            const dateVal = trx.Tanggal ? trx.Tanggal.replace(' ', 'T').slice(0, 16) : '';
-            const ketField = type === 'rusak'
-                ? `<div><label class="block text-xs font-medium text-slate-500 mb-1">Keterangan / Alasan</label><input type="text" id="editTrxKet" class="w-full border border-slate-300 px-3 py-2 text-sm rounded-lg outline-none focus:ring-2 focus:ring-blue-500" value="${trx.Keterangan || ''}"></div>`
-                : '';
+            let dateVal = '';
+            if (trx.Tanggal) {
+                const parts = String(trx.Tanggal).trim().split(' ');
+                const dPart = parts[0] || '';
+                const tPart = (parts[1] || '00:00').slice(0, 5);
+                if (dPart.includes('-')) dateVal = `${dPart}T${tPart}`;
+            }
+
+            let extraFields = '';
+            if (type === 'rusak') {
+                extraFields = `<div><label class="block text-xs font-medium text-slate-500 mb-1">Keterangan / Alasan</label><input type="text" id="editTrxKet" class="w-full border border-slate-300 px-3 py-2 text-sm rounded-lg outline-none focus:ring-2 focus:ring-blue-500" value="${trx.Keterangan || ''}"></div>`;
+            } else if (type === 'inbound') {
+                const supOpts = (State.suppliers || []).map(s => `<option value="${s.NamaSupplier}">`).join('');
+                extraFields = `
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-xs font-medium text-slate-500 mb-1">Nama Supplier</label>
+                            <input type="text" id="editTrxSupplier" list="editSupList" class="w-full border border-slate-300 px-3 py-2 text-sm rounded-lg outline-none focus:ring-2 focus:ring-blue-500" value="${trx.Supplier && trx.Supplier !== '-' ? trx.Supplier : ''}" placeholder="Nama Supplier">
+                            <datalist id="editSupList">${supOpts}</datalist>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-500 mb-1">Jatuh Tempo Supplier</label>
+                            <input type="date" id="editTrxTempoSup" class="w-full border border-slate-300 px-3 py-2 text-sm rounded-lg outline-none focus:ring-2 focus:ring-blue-500" value="${trx.TempoSupplier && trx.TempoSupplier !== '-' ? trx.TempoSupplier : ''}">
+                        </div>
+                    </div>
+                `;
+            }
 
             Swal.fire({
                 title: 'Edit Riwayat Transaksi',
@@ -3497,14 +3666,14 @@
                         <div class="grid grid-cols-2 gap-2">
                             <div>
                                 <label class="block text-xs font-medium text-slate-500 mb-1">Qty</label>
-                                <input type="number" id="editTrxQty" min="1" class="w-full border border-slate-300 px-3 py-2 text-sm rounded-lg font-bold outline-none focus:ring-2 focus:ring-blue-500" value="${Math.abs(parseFloat(trx.Qty) || 0)}">
+                                <input type="number" id="editTrxQty" min="0.01" step="any" class="w-full border border-slate-300 px-3 py-2 text-sm rounded-lg font-bold outline-none focus:ring-2 focus:ring-blue-500" value="${Math.abs(parseFloat(String(trx.Qty).replace(/[^0-9.-]+/g, "")) || 0)}">
                             </div>
                             <div>
                                 <label class="block text-xs font-medium text-slate-500 mb-1">Satuan</label>
                                 <select id="editTrxSatuan" class="w-full border border-slate-300 px-3 py-2 text-sm rounded-lg outline-none focus:ring-2 focus:ring-blue-500 bg-white">${satuanOpts}</select>
                             </div>
                         </div>
-                        ${ketField}
+                        ${extraFields}
                         <p class="text-[11px] text-amber-700 bg-amber-50 p-2 rounded-lg border border-amber-200"><i class="fa-solid fa-circle-info mr-1"></i>Stok barang akan otomatis disesuaikan dengan perubahan jumlah ini.</p>
                     </div>
                 `,
@@ -3518,16 +3687,19 @@
                         Swal.showValidationMessage('Qty harus lebih dari 0');
                         return false;
                     }
+                    const tglInput = document.getElementById('editTrxTanggal').value;
                     return {
-                        id: trx.ID,
+                        id: String(trx.ID).trim(),
                         type: type,
-                        tanggal: document.getElementById('editTrxTanggal').value,
+                        tanggal: tglInput ? tglInput.replace('T', ' ') : trx.Tanggal,
                         kode: trx.KodeBahan,
                         nama: trx.NamaBahan,
                         kategori: trx.Kategori,
                         qty: qtyVal,
                         satuan: document.getElementById('editTrxSatuan').value,
                         resto: document.getElementById('editTrxResto').value,
+                        supplier: type === 'inbound' ? (document.getElementById('editTrxSupplier').value.trim() || '-') : '-',
+                        tempoSupplier: type === 'inbound' ? (document.getElementById('editTrxTempoSup').value || '-') : '-',
                         keterangan: type === 'rusak' ? (document.getElementById('editTrxKet').value || '-') : '-'
                     };
                 }
@@ -3561,6 +3733,7 @@
             else { tType = 'Barang Rusak / Hilang'; tColor = 'text-orange-600'; }
 
             const ketHtml = trx.Keterangan ? `<div class="grid grid-cols-1 gap-2 border-b border-slate-200 pb-2 pt-2"><span class="text-slate-500">Keterangan:</span> <span class="font-bold text-slate-800">${trx.Keterangan}</span></div>` : '';
+            const supHtml = trx.Supplier ? `<div class="grid grid-cols-2 gap-2 border-b border-slate-200 pb-2 pt-2"><span class="text-slate-500">Supplier</span> <span class="font-bold text-slate-800">${trx.Supplier}</span><span class="text-slate-500">Jatuh Tempo</span> <span class="font-bold text-amber-700">${trx.TempoSupplier || '-'}</span></div>` : '';
 
             Swal.fire({
                 title: 'Detail Transaksi',
@@ -3568,15 +3741,16 @@
                     <div class="grid grid-cols-2 gap-2 border-b border-slate-200 pb-2"><span class="text-slate-500">ID Transaksi</span> <span class="font-bold font-mono text-slate-800">${trx.ID}</span><span class="text-slate-500">Tipe</span> <span class="font-bold ${tColor}">${tType}</span><span class="text-slate-500">Waktu</span> <span class="font-bold text-slate-800">${trx.Tanggal}</span></div>
                     <div class="grid grid-cols-2 gap-2 border-b border-slate-200 pb-2 pt-2"><span class="text-slate-500">Kode Barang</span> <span class="font-bold font-mono text-slate-800">${trx.KodeBahan}</span><span class="text-slate-500">Nama Barang</span> <span class="font-bold text-slate-800">${trx.NamaBahan}</span><span class="text-slate-500">Kategori</span> <span class="font-bold text-slate-800">${trx.Kategori}</span></div>
                     <div class="grid grid-cols-2 gap-2 border-b border-slate-200 pb-2 pt-2"><span class="text-slate-500">Qty</span> <span class="font-bold text-blue-600 text-lg">${Math.abs(parseFloat(trx.Qty))} ${trx.Satuan}</span></div>
+                    ${supHtml}
                     ${ketHtml}
                     <div class="grid grid-cols-2 gap-2 pt-2"><span class="text-slate-500">Petugas</span> <span class="font-bold text-slate-800">${trx.Petugas}</span><span class="text-slate-500">Toko</span> <span class="font-bold text-slate-800">${trx.Resto}</span></div>
                 </div>`, showCloseButton: true, showConfirmButton: false, customClass: { popup: 'rounded-2xl' }
             });
         }
-        
+
         function deleteTransaction(id, type) {
             if (State.user.role !== 'Admin' && State.user.role !== 'Admin Warehouse') {
-                 return Swal.fire('Akses Ditolak', 'Hanya Admin yang dapat menghapus riwayat transaksi.', 'error');
+                return Swal.fire('Akses Ditolak', 'Hanya Admin yang dapat menghapus riwayat transaksi.', 'error');
             }
 
             Swal.fire({
@@ -3587,7 +3761,7 @@
                 confirmButtonColor: '#ef4444',
                 confirmButtonText: 'Ya, Hapus'
             }).then(r => {
-                if(r.isConfirmed) {
+                if (r.isConfirmed) {
                     Swal.fire({title: 'Menghapus...', allowOutsideClick: false, didOpen: () => Swal.showLoading()});
                     runGas('deleteTransaction', id, type).then(res => {
                         syncLocalState(res);
@@ -3595,7 +3769,7 @@
                             filterPosHistory();
                         } else {
                             filterScanHistory();
-                            if(State.transactionType === 'outbound' || State.transactionType === 'rusak') updateOutboundStockDisplay();
+                            if (State.transactionType === 'outbound' || State.transactionType === 'rusak') updateOutboundStockDisplay();
                         }
                         Swal.fire('Sukses', 'Transaksi berhasil dihapus & stok telah di-rollback.', 'success');
                     }).catch(e => Swal.fire('Error', 'Gagal menghapus transaksi.', 'error'));
@@ -3603,20 +3777,19 @@
             });
         }
 
-        // --- DATATABLE LOGIC (DATABASE STOCK + WARNING STOK TIPIS) ---
+        // --- DATATABLE LOGIC (DATABASE STOCK) ---
         function loadDataTableView(container, viewId) {
             container.appendChild(document.getElementById('tpl-datatable').content.cloneNode(true));
             buildCheckboxDropdown('data', 'data');
             populateCategoryDropdowns();
 
             document.getElementById('tableTitle').textContent = "Database Stock Realtime";
-            document.getElementById('tableSubtitle').textContent = "Pantau ketersediaan stock & peringatan barang yang mau habis.";
+            document.getElementById('tableSubtitle').textContent = "Pantau ketersediaan stock & status peringatan stok mau habis.";
             const headers = ['Kode Barang', 'Nama Barang', 'Kategori', 'Stock Kecil', 'Stock Besar', 'Status Stok', 'Toko', 'Aksi'];
             const dataList = (State.user.role === 'Admin' || State.user.role === 'Admin Warehouse') ? State.stockData : State.stockData.filter(s => s.Resto === State.user.resto);
 
             document.getElementById('tableHead').innerHTML = `<tr>${headers.map(h=>`<th class="px-5 py-3 whitespace-nowrap font-medium">${h}</th>`).join('')}</tr>`;
             State.tableData = dataList;
-            
             filterTable(); 
         }
 
@@ -3645,14 +3818,14 @@
                     const isLow = currKecil <= minThreshold;
 
                     let stMatch = true;
-                    if (statusFilter === 'low' && !isLow) stMatch = false;
-                    if (statusFilter === 'safe' && isLow) stMatch = false;
+                    if (statusFilter === 'low') stMatch = isLow;
+                    else if (statusFilter === 'safe') stMatch = !isLow;
 
                     return sMatch && cMatch && rMatch && stMatch;
                 });
                 State.currentPage = 1; renderTableBody();
                 if(wrap) wrap.classList.remove('updating');
-            }, 250);
+            }, 200);
         }
 
         function renderTableBody() {
@@ -3668,8 +3841,8 @@
                 const isLow = currKecil <= minThreshold;
 
                 const statusBadge = isLow
-                    ? `<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700 animate-pulse"><i class="fa-solid fa-triangle-exclamation"></i> Stok Menipis (Min: ${minThreshold})</span>`
-                    : `<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700"><i class="fa-solid fa-circle-check"></i> Aman</span>`;
+                    ? `<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-red-100 text-red-700 animate-pulse"><i class="fa-solid fa-triangle-exclamation"></i> Stok Menipis (Min: ${minThreshold})</span>`
+                    : `<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-700"><i class="fa-solid fa-circle-check"></i> Aman</span>`;
 
                 let dbActionBtn = `<button onclick="viewStock('${r.KodeBahan}', '${r.Resto}')" class="text-blue-500 hover:bg-blue-50 p-1.5 rounded" title="View Detail"><i class="fa-solid fa-eye"></i></button>`;
                 if (State.user.role === 'Admin') {
@@ -3678,7 +3851,7 @@
                 }
 
                 return `<tr class="hover:bg-slate-50 ${isLow ? 'bg-red-50/40' : ''}">
-                    <td class="px-5 py-3 font-mono text-xs bg-slate-100">${r.KodeBahan}</td>
+                    <td class="px-5 py-3 font-mono text-xs font-bold">${r.KodeBahan}</td>
                     <td class="px-5 py-3 font-medium">${r.NamaBahan}</td>
                     <td class="px-5 py-3 text-xs">${r.Kategori}</td>
                     <td class="px-5 py-3 font-bold ${isLow ? 'text-red-600' : 'text-slate-700'}">${r.QtyKecil}</td>
@@ -3704,7 +3877,7 @@
 
             if (State.currentView === 'penjualan') {
                 dataToExport = State.posHistFiltered;
-                tableTitle = 'Laporan Transaksi Penjualan';
+                tableTitle = 'Riwayat Transaksi Penjualan';
                 columns = ['ID', 'Tanggal', 'KodeBahan', 'NamaBahan', 'Qty', 'Satuan', 'HargaSatuan', 'TotalHarga', 'MetodeBayar', 'InfoTempo', 'Petugas', 'Resto'];
             } else if (State.currentView === 'inbound' || State.currentView === 'outbound' || State.currentView === 'rusak') {
                 dataToExport = State.scanHistFiltered;
@@ -3714,6 +3887,8 @@
                 
                 if (State.currentView === 'rusak') {
                     columns = ['Tanggal', 'KodeBahan', 'NamaBahan', 'Kategori', 'Qty', 'Satuan', 'Keterangan', 'Petugas', 'Resto'];
+                } else if (State.currentView === 'inbound') {
+                    columns = ['Tanggal', 'KodeBahan', 'NamaBahan', 'Kategori', 'Qty', 'Satuan', 'Supplier', 'TempoSupplier', 'Petugas', 'Resto'];
                 } else {
                     columns = ['Tanggal', 'KodeBahan', 'NamaBahan', 'Kategori', 'Qty', 'Satuan', 'Petugas', 'Resto'];
                 }
@@ -3769,15 +3944,12 @@
                 
                 const blob = new Blob(["\uFEFF"+csvContent], { type: 'text/csv;charset=utf-8;' });
                 const link = document.createElement("a");
-                if (link.download !== undefined) {
-                    const url = URL.createObjectURL(blob);
-                    link.setAttribute("href", url);
-                    link.setAttribute("download", fileName + ".csv");
-                    link.style.visibility = 'hidden';
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                }
+                const url = URL.createObjectURL(blob);
+                link.setAttribute("href", url);
+                link.setAttribute("download", fileName + ".csv");
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
                 Swal.fire({icon: 'success', title: 'Export Berhasil', text: 'File Excel (CSV) berhasil diunduh.', toast: true, position: 'top-end', showConfirmButton: false, timer: 2000});
             }
         }
@@ -3900,6 +4072,7 @@
             });
 
             renderRestoTable();
+            renderSupplierTable();
             renderCategoryTable();
             renderUserTable();
             renderMasterTable();
@@ -3912,10 +4085,11 @@
         }
 
         function switchSetTab(tabId) {
-            ['app', 'resto', 'kategori', 'user', 'master'].forEach(t => {
-                document.getElementById(`setTab-${t}`).classList.add('hidden');
+            ['app', 'resto', 'supplier', 'kategori', 'user', 'master'].forEach(t => {
+                const el = document.getElementById(`setTab-${t}`);
                 const btn = document.getElementById(`tabBtn-${t}`);
-                btn.className = "px-4 py-2 text-sm font-medium rounded-lg text-slate-500 hover:bg-slate-50 transition-colors whitespace-nowrap";
+                if (el) el.classList.add('hidden');
+                if (btn) btn.className = "px-4 py-2 text-sm font-medium rounded-lg text-slate-500 hover:bg-slate-50 transition-colors whitespace-nowrap";
             });
             document.getElementById(`setTab-${tabId}`).classList.remove('hidden');
             const activeBtn = document.getElementById(`tabBtn-${tabId}`);
@@ -3974,6 +4148,55 @@
                 if(r.isConfirmed) {
                     Swal.fire({title: 'Menghapus...', allowOutsideClick: false, didOpen: () => Swal.showLoading()});
                     runGas('deleteResto', idx).then(d => { syncLocalState(d); renderRestoTable(); Swal.fire('Sukses', 'Toko dihapus', 'success'); }).catch(e => Swal.fire('Error', 'Gagal menghapus.', 'error'));
+                }
+            });
+        }
+
+        function renderSupplierTable() {
+            const tbody = document.getElementById('tblSupplierList');
+            if (!tbody) return;
+            if (!State.suppliers || State.suppliers.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" class="px-5 py-6 text-center text-slate-400">Belum ada data supplier.</td></tr>`;
+                return;
+            }
+            tbody.innerHTML = State.suppliers.map((s, i) => `
+                <tr class="hover:bg-slate-50">
+                    <td class="px-5 py-3 font-bold text-slate-800">${s.NamaSupplier}</td>
+                    <td class="px-5 py-3 text-xs text-slate-600">${s.NoTelp || '-'}</td>
+                    <td class="px-5 py-3 text-xs text-slate-600">${s.Alamat || '-'}</td>
+                    <td class="px-5 py-3 text-center">
+                        <button onclick="deleteSupplier(${i})" class="text-red-500 hover:bg-red-50 p-2 rounded"><i class="fa-solid fa-trash"></i></button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function saveNewSupplier() {
+            const nama = document.getElementById('setSupNama').value.trim();
+            const telp = document.getElementById('setSupTelp').value.trim();
+            const alamat = document.getElementById('setSupAlamat').value.trim();
+            if (!nama) return Swal.fire('Peringatan', 'Nama Supplier wajib diisi!', 'warning');
+
+            Swal.fire({title: 'Menyimpan...', allowOutsideClick: false, didOpen: () => Swal.showLoading()});
+            runGas('saveSupplier', { nama, telp, alamat }).then(d => {
+                syncLocalState(d);
+                document.getElementById('setSupNama').value = '';
+                document.getElementById('setSupTelp').value = '';
+                document.getElementById('setSupAlamat').value = '';
+                renderSupplierTable();
+                Swal.fire('Sukses', 'Data Supplier berhasil disimpan.', 'success');
+            }).catch(e => Swal.fire('Error', 'Gagal menyimpan supplier.', 'error'));
+        }
+
+        function deleteSupplier(idx) {
+            Swal.fire({title: 'Hapus Supplier?', icon: 'warning', showCancelButton: true}).then(r => {
+                if (r.isConfirmed) {
+                    Swal.fire({title: 'Menghapus...', allowOutsideClick: false, didOpen: () => Swal.showLoading()});
+                    runGas('deleteSupplier', idx).then(d => {
+                        syncLocalState(d);
+                        renderSupplierTable();
+                        Swal.fire('Sukses', 'Supplier dihapus.', 'success');
+                    }).catch(e => Swal.fire('Error', 'Gagal menghapus supplier.', 'error'));
                 }
             });
         }
