@@ -2822,6 +2822,303 @@
             }
         }
 
+        // --- PUSAT LAPORAN LENGKAP LOGIC ---
+        function loadLaporanView(container) {
+            container.appendChild(document.getElementById('tpl-laporan').content.cloneNode(true));
+            const selResto = document.getElementById('lapFilterResto');
+            if (selResto) {
+                if (State.user.role === 'Admin' || State.user.role === 'Admin Warehouse') {
+                    selResto.innerHTML = `<option value="ALL">Semua Toko</option>` + State.restos.map(r => `<option value="${r}">${r}</option>`).join('');
+                } else {
+                    selResto.innerHTML = `<option value="${State.user.resto}">${State.user.resto}</option>`;
+                    selResto.disabled = true;
+                }
+            }
+            switchLaporanTab('all_sales');
+        }
+
+        function switchLaporanTab(tab) {
+            State.lapTab = tab;
+            ['all_sales', 'tunai', 'qris', 'tempo', 'inbound', 'outbound', 'rusak'].forEach(t => {
+                const btn = document.getElementById(`lapTab-${t}`);
+                if (btn) {
+                    btn.className = t === tab
+                        ? "px-3.5 py-2 text-xs font-bold rounded-lg bg-blue-600 text-white whitespace-nowrap transition shadow-sm"
+                        : "px-3.5 py-2 text-xs font-bold rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 whitespace-nowrap transition";
+                }
+            });
+            renderLaporanData();
+        }
+
+        function renderLaporanData() {
+            const tab = State.lapTab || 'all_sales';
+            const sDate = document.getElementById('lapStartDate')?.value || '';
+            const eDate = document.getElementById('lapEndDate')?.value || '';
+            const restoVal = document.getElementById('lapFilterResto')?.value || 'ALL';
+            const searchVal = document.getElementById('lapSearchInput')?.value.toLowerCase() || '';
+
+            const allowedRestos = (State.user.role === 'Admin' || State.user.role === 'Admin Warehouse')
+                ? (restoVal === 'ALL' ? State.restos : [restoVal])
+                : [State.user.resto];
+
+            let source = [];
+            if (tab === 'all_sales') source = State.salesHistory;
+            else if (tab === 'tunai') source = State.salesHistory.filter(s => String(s.MetodeBayar || 'Tunai').toLowerCase() === 'tunai');
+            else if (tab === 'qris') source = State.salesHistory.filter(s => String(s.MetodeBayar || '').toLowerCase() === 'qris');
+            else if (tab === 'tempo') source = State.salesHistory.filter(s => String(s.MetodeBayar || '').toLowerCase() === 'tempo');
+            else if (tab === 'inbound') source = State.inHistory;
+            else if (tab === 'outbound') source = State.outHistory;
+            else if (tab === 'rusak') source = State.barangRusak;
+
+            State.lapFiltered = (source || []).filter(r => {
+                const matchResto = allowedRestos.some(ar => String(ar).trim().toUpperCase() === String(r.Resto).trim().toUpperCase());
+                if (!matchResto) return false;
+
+                const dOnly = (r.Tanggal || '').split(' ')[0];
+                if (sDate && dOnly < sDate) return false;
+                if (eDate && dOnly > eDate) return false;
+
+                if (searchVal) {
+                    const comb = Object.values(r).join(' ').toLowerCase();
+                    if (!comb.includes(searchVal)) return false;
+                }
+                return true;
+            }).sort((a, b) => new Date(b.Tanggal) - new Date(a.Tanggal));
+
+            State.lapPage = 1;
+            renderLaporanSummary();
+            renderLaporanTable();
+        }
+
+        function renderLaporanSummary() {
+            const box = document.getElementById('laporanSummaryBox');
+            if (!box) return;
+            const tab = State.lapTab;
+            const data = State.lapFiltered;
+
+            if (['all_sales', 'tunai', 'qris', 'tempo'].includes(tab)) {
+                let totalOmzet = 0;
+                let totalQty = 0;
+                data.forEach(r => {
+                    totalOmzet += parseFloat(r.TotalHarga) || 0;
+                    totalQty += Math.abs(parseFloat(r.Qty) || 0);
+                });
+                box.innerHTML = `
+                    <div class="bg-blue-50 border border-blue-100 p-3.5 rounded-xl">
+                        <span class="text-[11px] font-bold text-blue-600 uppercase">Total Transaksi</span>
+                        <div class="text-xl font-extrabold text-slate-800 mt-0.5">${data.length} <span class="text-xs font-normal text-slate-500">Baris</span></div>
+                    </div>
+                    <div class="bg-emerald-50 border border-emerald-100 p-3.5 rounded-xl">
+                        <span class="text-[11px] font-bold text-emerald-600 uppercase">Total Omzet</span>
+                        <div class="text-xl font-extrabold text-emerald-700 mt-0.5">${formatRupiah(totalOmzet)}</div>
+                    </div>
+                    <div class="bg-slate-50 border border-slate-200 p-3.5 rounded-xl">
+                        <span class="text-[11px] font-bold text-slate-500 uppercase">Total Qty Terjual</span>
+                        <div class="text-xl font-extrabold text-slate-800 mt-0.5">${totalQty} <span class="text-xs font-normal text-slate-500">Item</span></div>
+                    </div>
+                    <div class="bg-amber-50 border border-amber-100 p-3.5 rounded-xl">
+                        <span class="text-[11px] font-bold text-amber-700 uppercase">Kategori Laporan</span>
+                        <div class="text-sm font-extrabold text-amber-900 mt-1.5 uppercase">${tab.replace('_', ' ')}</div>
+                    </div>
+                `;
+            } else {
+                let totalQty = 0;
+                data.forEach(r => totalQty += Math.abs(parseFloat(r.Qty) || 0));
+                const tempoCount = tab === 'inbound' ? data.filter(r => r.TempoSupplier && r.TempoSupplier !== '-').length : 0;
+                box.innerHTML = `
+                    <div class="bg-blue-50 border border-blue-100 p-3.5 rounded-xl">
+                        <span class="text-[11px] font-bold text-blue-600 uppercase">Total Record</span>
+                        <div class="text-xl font-extrabold text-slate-800 mt-0.5">${data.length} <span class="text-xs font-normal text-slate-500">Data</span></div>
+                    </div>
+                    <div class="bg-emerald-50 border border-emerald-100 p-3.5 rounded-xl">
+                        <span class="text-[11px] font-bold text-emerald-600 uppercase">Total Kuantitas</span>
+                        <div class="text-xl font-extrabold text-emerald-700 mt-0.5">${totalQty} <span class="text-xs font-normal text-slate-500">Unit</span></div>
+                    </div>
+                    ${tab === 'inbound' ? `
+                    <div class="bg-amber-50 border border-amber-100 p-3.5 rounded-xl">
+                        <span class="text-[11px] font-bold text-amber-700 uppercase">Ada Tempo Supplier</span>
+                        <div class="text-xl font-extrabold text-amber-800 mt-0.5">${tempoCount} <span class="text-xs font-normal">Transaksi</span></div>
+                    </div>` : ''}
+                `;
+            }
+        }
+
+        function renderLaporanTable() {
+            const thead = document.getElementById('lapTableHead');
+            const tbody = document.getElementById('lapTableBody');
+            const empty = document.getElementById('lapEmptyState');
+            const info = document.getElementById('lapPageInfo');
+            if (!thead || !tbody) return;
+
+            const tab = State.lapTab;
+            const isSales = ['all_sales', 'tunai', 'qris', 'tempo'].includes(tab);
+
+            if (isSales) {
+                thead.innerHTML = `<tr>
+                    <th class="px-4 py-3 font-medium">No. Nota & Waktu</th>
+                    <th class="px-4 py-3 font-medium">Barang</th>
+                    <th class="px-4 py-3 font-medium">Qty</th>
+                    <th class="px-4 py-3 font-medium">Harga Satuan</th>
+                    <th class="px-4 py-3 font-medium">Total Harga</th>
+                    <th class="px-4 py-3 font-medium">Metode & Tempo</th>
+                    <th class="px-4 py-3 font-medium">Toko / Kasir</th>
+                </tr>`;
+            } else if (tab === 'inbound') {
+                thead.innerHTML = `<tr>
+                    <th class="px-4 py-3 font-medium">Tanggal</th>
+                    <th class="px-4 py-3 font-medium">Barang</th>
+                    <th class="px-4 py-3 font-medium">Qty</th>
+                    <th class="px-4 py-3 font-medium">Supplier</th>
+                    <th class="px-4 py-3 font-medium">Jatuh Tempo</th>
+                    <th class="px-4 py-3 font-medium">Toko / Petugas</th>
+                </tr>`;
+            } else if (tab === 'rusak') {
+                thead.innerHTML = `<tr>
+                    <th class="px-4 py-3 font-medium">Tanggal</th>
+                    <th class="px-4 py-3 font-medium">Barang</th>
+                    <th class="px-4 py-3 font-medium">Qty</th>
+                    <th class="px-4 py-3 font-medium">Keterangan</th>
+                    <th class="px-4 py-3 font-medium">Toko / Petugas</th>
+                </tr>`;
+            } else {
+                thead.innerHTML = `<tr>
+                    <th class="px-4 py-3 font-medium">Tanggal</th>
+                    <th class="px-4 py-3 font-medium">Barang</th>
+                    <th class="px-4 py-3 font-medium">Kategori</th>
+                    <th class="px-4 py-3 font-medium">Qty</th>
+                    <th class="px-4 py-3 font-medium">Toko / Petugas</th>
+                </tr>`;
+            }
+
+            if (State.lapFiltered.length === 0) {
+                tbody.innerHTML = '';
+                empty.classList.remove('hidden');
+                info.textContent = 'Menampilkan 0 data';
+                return;
+            }
+
+            empty.classList.add('hidden');
+            const start = (State.lapPage - 1) * 10;
+            const paginated = State.lapFiltered.slice(start, start + 10);
+
+            tbody.innerHTML = paginated.map(r => {
+                if (isSales) {
+                    const metode = r.MetodeBayar || 'Tunai';
+                    let badge = 'bg-emerald-100 text-emerald-700';
+                    if (metode === 'QRIS') badge = 'bg-blue-100 text-blue-700';
+                    else if (metode === 'Tempo') badge = 'bg-amber-100 text-amber-800';
+
+                    return `<tr class="hover:bg-slate-50">
+                        <td class="px-4 py-3"><div class="font-bold font-mono text-xs text-blue-600">${r.ID}</div><div class="text-[10px] text-slate-400">${r.Tanggal}</div></td>
+                        <td class="px-4 py-3"><div class="font-medium text-slate-800">${r.NamaBahan}</div><div class="text-[10px] font-mono text-slate-400">${r.KodeBahan}</div></td>
+                        <td class="px-4 py-3 font-bold">${r.Qty} <span class="text-xs font-normal">${r.Satuan}</span></td>
+                        <td class="px-4 py-3 text-xs">${formatRupiah(r.HargaSatuan)}</td>
+                        <td class="px-4 py-3 font-bold text-emerald-600">${formatRupiah(r.TotalHarga)}</td>
+                        <td class="px-4 py-3"><span class="px-2 py-0.5 rounded text-[10px] font-bold ${badge}">${metode}</span>${r.InfoTempo && r.InfoTempo !== '-' ? `<div class="text-[10px] text-amber-700 mt-0.5">${r.InfoTempo}</div>` : ''}</td>
+                        <td class="px-4 py-3 text-xs"><div class="font-semibold">${r.Resto}</div><div class="text-[10px] text-slate-400">${r.Petugas}</div></td>
+                    </tr>`;
+                } else if (tab === 'inbound') {
+                    return `<tr class="hover:bg-slate-50">
+                        <td class="px-4 py-3 text-xs">${r.Tanggal}</td>
+                        <td class="px-4 py-3"><div class="font-medium">${r.NamaBahan}</div><div class="text-[10px] font-mono text-slate-400">${r.KodeBahan}</div></td>
+                        <td class="px-4 py-3 font-bold text-emerald-600">${Math.abs(parseFloat(r.Qty))} <span class="text-xs font-normal">${r.Satuan}</span></td>
+                        <td class="px-4 py-3 text-xs font-semibold">${r.Supplier || '-'}</td>
+                        <td class="px-4 py-3 text-xs">${r.TempoSupplier && r.TempoSupplier !== '-' ? `<span class="bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded">${r.TempoSupplier}</span>` : '-'}</td>
+                        <td class="px-4 py-3 text-xs"><div class="font-semibold">${r.Resto}</div><div class="text-[10px] text-slate-400">${r.Petugas}</div></td>
+                    </tr>`;
+                } else if (tab === 'rusak') {
+                    return `<tr class="hover:bg-slate-50">
+                        <td class="px-4 py-3 text-xs">${r.Tanggal}</td>
+                        <td class="px-4 py-3"><div class="font-medium">${r.NamaBahan}</div><div class="text-[10px] font-mono text-slate-400">${r.KodeBahan}</div></td>
+                        <td class="px-4 py-3 font-bold text-orange-600">${Math.abs(parseFloat(r.Qty))} <span class="text-xs font-normal">${r.Satuan}</span></td>
+                        <td class="px-4 py-3 text-xs">${r.Keterangan || '-'}</td>
+                        <td class="px-4 py-3 text-xs"><div class="font-semibold">${r.Resto}</div><div class="text-[10px] text-slate-400">${r.Petugas}</div></td>
+                    </tr>`;
+                } else {
+                    return `<tr class="hover:bg-slate-50">
+                        <td class="px-4 py-3 text-xs">${r.Tanggal}</td>
+                        <td class="px-4 py-3"><div class="font-medium">${r.NamaBahan}</div><div class="text-[10px] font-mono text-slate-400">${r.KodeBahan}</div></td>
+                        <td class="px-4 py-3 text-xs">${r.Kategori}</td>
+                        <td class="px-4 py-3 font-bold text-rose-600">${Math.abs(parseFloat(r.Qty))} <span class="text-xs font-normal">${r.Satuan}</span></td>
+                        <td class="px-4 py-3 text-xs"><div class="font-semibold">${r.Resto}</div><div class="text-[10px] text-slate-400">${r.Petugas}</div></td>
+                    </tr>`;
+                }
+            }).join('');
+
+            info.textContent = `Menampilkan ${start + 1} - ${Math.min(start + 10, State.lapFiltered.length)} dari ${State.lapFiltered.length} data`;
+        }
+
+        function changeLapPage(d) {
+            const m = Math.ceil(State.lapFiltered.length / 10);
+            const n = State.lapPage + d;
+            if (n >= 1 && n <= m) {
+                State.lapPage = n;
+                renderLaporanTable();
+            }
+        }
+
+        function exportLaporan(format) {
+            if (!State.lapFiltered || State.lapFiltered.length === 0) {
+                return Swal.fire('Info', 'Tidak ada data laporan untuk diekspor.', 'info');
+            }
+            const tab = State.lapTab;
+            const titleMap = {
+                all_sales: 'Laporan Semua Penjualan',
+                tunai: 'Laporan Penjualan Tunai',
+                qris: 'Laporan Penjualan QRIS',
+                tempo: 'Laporan Penjualan Tempo',
+                inbound: 'Laporan Barang Masuk & Supplier',
+                outbound: 'Laporan Barang Keluar',
+                rusak: 'Laporan Barang Rusak'
+            };
+            const title = titleMap[tab] || 'Laporan Transaksi';
+            const isSales = ['all_sales', 'tunai', 'qris', 'tempo'].includes(tab);
+            const columns = isSales
+                ? ['ID', 'Tanggal', 'KodeBahan', 'NamaBahan', 'Qty', 'Satuan', 'HargaSatuan', 'TotalHarga', 'MetodeBayar', 'InfoTempo', 'Petugas', 'Resto']
+                : (tab === 'inbound'
+                    ? ['ID', 'Tanggal', 'KodeBahan', 'NamaBahan', 'Kategori', 'Qty', 'Satuan', 'Supplier', 'TempoSupplier', 'Petugas', 'Resto']
+                    : (tab === 'rusak'
+                        ? ['ID', 'Tanggal', 'KodeBahan', 'NamaBahan', 'Kategori', 'Qty', 'Satuan', 'Keterangan', 'Petugas', 'Resto']
+                        : ['ID', 'Tanggal', 'KodeBahan', 'NamaBahan', 'Kategori', 'Qty', 'Satuan', 'Petugas', 'Resto']));
+
+            const fileName = `${title.replace(/ /g, '_')}_${new Date().toLocaleDateString('id-ID').replace(/\//g, '-')}`;
+
+            if (format === 'pdf') {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF('l', 'mm', 'a4');
+                doc.setFontSize(14);
+                doc.text(title, 14, 15);
+                doc.setFontSize(9);
+                doc.text(`Dicetak pada: ${new Date().toLocaleString('id-ID')} | Oleh: ${State.user.name}`, 14, 21);
+
+                const body = State.lapFiltered.map(row => columns.map(col => col === 'Qty' ? Math.abs(parseFloat(row.Qty)) : (row[col] || '')));
+                doc.autoTable({
+                    startY: 27,
+                    head: [columns],
+                    body: body,
+                    theme: 'grid',
+                    styles: { fontSize: 7.5 },
+                    headStyles: { fillColor: [37, 99, 235] }
+                });
+                doc.save(fileName + '.pdf');
+            } else {
+                let csvContent = columns.join(";") + "\n";
+                State.lapFiltered.forEach(row => {
+                    csvContent += columns.map(col => {
+                        const val = col === 'Qty' ? Math.abs(parseFloat(row.Qty)) : (row[col] || '');
+                        return `"${String(val).replace(/"/g, '""')}"`;
+                    }).join(";") + "\n";
+                });
+                const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement("a");
+                link.href = URL.createObjectURL(blob);
+                link.download = fileName + ".csv";
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+        }
+
         // --- CUSTOM DROPDOWN BAHAN LOGIC ---
         function setupDropdownBahan(prefix) {
             let resto = '';
