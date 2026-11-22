@@ -519,7 +519,7 @@
                             <!-- Panel Khusus QRIS -->
                             <div id="panelPayQris" class="hidden bg-white p-3.5 rounded-xl border border-blue-200 flex flex-col items-center text-center space-y-2 shadow-sm">
                                 <span class="text-xs font-bold text-blue-700 uppercase tracking-wide"><i class="fa-solid fa-qrcode mr-1"></i> Scan QRIS Untuk Pembayaran</span>
-                                <img src="https://res.cloudinary.com/fe0k2zlt/image/upload/v1795254999/qris.jpg" alt="QRIS Payment" class="w-44 h-44 object-contain rounded-lg border border-slate-200 p-1 bg-white">
+                                <img src="https://res.cloudinary.com/fe0k2zlt/image/upload/v1795319826/QR_Helmi.jpg" alt="QRIS Payment" class="w-44 h-44 object-contain rounded-lg border border-slate-200 p-1 bg-white">
                                 <p class="text-[11px] text-slate-500">Pastikan nominal transfer sesuai dengan <b>Total Pembayaran</b> sebelum menyelesaikan transaksi.</p>
                             </div>
 
@@ -655,18 +655,7 @@
                             <label class="block text-xs font-medium text-slate-500 mb-1">Kategori</label>
                             <input type="text" id="frmKategori" class="w-full border border-slate-300 rounded-lg px-3 py-2 bg-slate-100" readonly>
                         </div>
-                        <div class="flex gap-2">
-                            <div class="flex-1">
-                                <label class="block text-xs font-medium text-slate-500 mb-1">Qty</label>
-                                <input type="number" id="frmQty" class="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none" required>
-                            </div>
-                            <div class="w-1/3">
-                                <label class="block text-xs font-medium text-slate-500 mb-1">Satuan</label>
-                                <select id="frmSatuan" class="w-full border border-slate-300 rounded-lg px-3 py-2 bg-slate-100" disabled></select>
-                            </div>
-                        </div>
-
-                        <!-- KHUSUS FITUR BARANG MASUK: SUPPLIER & TEMPO KE SUPPLIER -->
+                        <!-- KHUSUS FITUR BARANG MASUK: SUPPLIER, HARGA BELI & TEMPO KE SUPPLIER -->
                         <div id="wrapSupplierInbound" class="hidden col-span-1 md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4 bg-emerald-50/60 p-4 rounded-xl border border-emerald-200">
                             <div>
                                 <label class="block text-xs font-bold text-emerald-900 mb-1"><i class="fa-solid fa-truck-field mr-1"></i> Nama Supplier</label>
@@ -674,8 +663,19 @@
                                 <datalist id="supplierDatalist"></datalist>
                             </div>
                             <div>
-                                <label class="block text-xs font-bold text-emerald-900 mb-1"><i class="fa-solid fa-bell mr-1 text-amber-600"></i> Pengingat Jatuh Tempo Supplier (Opsional)</label>
+                                <label class="block text-xs font-bold text-emerald-900 mb-1"><i class="fa-solid fa-tags mr-1 text-emerald-700"></i> Total Harga Beli Supplier (Rp)</label>
+                                <input type="text" inputmode="numeric" id="frmHargaBeli" class="w-full border border-emerald-300 rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-emerald-500 outline-none font-bold text-emerald-800" placeholder="Contoh: 250000">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-emerald-900 mb-1"><i class="fa-solid fa-bell mr-1 text-amber-600"></i> Pengingat Jatuh Tempo Supplier (Isi jika Tempo/Hutang)</label>
                                 <input type="date" id="frmTempoSupplier" class="w-full border border-emerald-300 rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-emerald-500 outline-none font-medium">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-emerald-900 mb-1"><i class="fa-solid fa-wallet mr-1 text-blue-600"></i> Status Pembayaran ke Supplier</label>
+                                <select id="frmStatusHutang" class="w-full border border-emerald-300 rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-emerald-500 outline-none font-bold text-slate-700">
+                                    <option value="Lunas">Lunas (Cash / Transfer)</option>
+                                    <option value="Belum Lunas">Belum Lunas (Hutang / Tempo)</option>
+                                </select>
                             </div>
                         </div>
 
@@ -771,10 +771,12 @@
 
                 <!-- Tab Kategori Laporan -->
                 <div class="flex overflow-x-auto hide-scroll gap-2 pb-3 mb-4 border-b border-slate-100">
-                    <button onclick="switchLaporanTab('all_sales')" id="lapTab-all_sales" class="px-3.5 py-2 text-xs font-bold rounded-lg bg-blue-600 text-white whitespace-nowrap transition">Semua Penjualan</button>
+                    <button onclick="switchLaporanTab('per_transaksi')" id="lapTab-per_transaksi" class="px-3.5 py-2 text-xs font-bold rounded-lg bg-blue-600 text-white whitespace-nowrap transition"><i class="fa-solid fa-receipt mr-1"></i> Penjualan Per Transaksi (Nota)</button>
+                    <button onclick="switchLaporanTab('all_sales')" id="lapTab-all_sales" class="px-3.5 py-2 text-xs font-bold rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 whitespace-nowrap transition">Penjualan Per Item</button>
                     <button onclick="switchLaporanTab('tunai')" id="lapTab-tunai" class="px-3.5 py-2 text-xs font-bold rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 whitespace-nowrap transition"><i class="fa-solid fa-money-bill-wave mr-1 text-emerald-600"></i> Penjualan Cash/Tunai</button>
                     <button onclick="switchLaporanTab('qris')" id="lapTab-qris" class="px-3.5 py-2 text-xs font-bold rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 whitespace-nowrap transition"><i class="fa-solid fa-qrcode mr-1 text-blue-600"></i> Penjualan QRIS</button>
-                    <button onclick="switchLaporanTab('tempo')" id="lapTab-tempo" class="px-3.5 py-2 text-xs font-bold rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 whitespace-nowrap transition"><i class="fa-solid fa-calendar-days mr-1 text-amber-600"></i> Penjualan Tempo</button>
+                    <button onclick="switchLaporanTab('tempo')" id="lapTab-tempo" class="px-3.5 py-2 text-xs font-bold rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 whitespace-nowrap transition"><i class="fa-solid fa-calendar-days mr-1 text-amber-600"></i> Piutang Pelanggan (Tempo)</button>
+                    <button onclick="switchLaporanTab('hutang_supplier')" id="lapTab-hutang_supplier" class="px-3.5 py-2 text-xs font-bold rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 whitespace-nowrap transition"><i class="fa-solid fa-file-invoice mr-1 text-rose-600"></i> Hutang ke Supplier</button>
                     <button onclick="switchLaporanTab('inbound')" id="lapTab-inbound" class="px-3.5 py-2 text-xs font-bold rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 whitespace-nowrap transition"><i class="fa-solid fa-boxes-packing mr-1 text-teal-600"></i> Barang Masuk & Supplier</button>
                     <button onclick="switchLaporanTab('outbound')" id="lapTab-outbound" class="px-3.5 py-2 text-xs font-bold rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 whitespace-nowrap transition"><i class="fa-solid fa-truck-fast mr-1 text-rose-600"></i> Barang Keluar</button>
                     <button onclick="switchLaporanTab('rusak')" id="lapTab-rusak" class="px-3.5 py-2 text-xs font-bold rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 whitespace-nowrap transition"><i class="fa-solid fa-triangle-exclamation mr-1 text-orange-600"></i> Barang Rusak</button>
@@ -1109,7 +1111,7 @@
         let masterDataFiltered = [];
 
         // === Konfigurasi API URL (Cache-Buster untuk Sinkronisasi Real-time HP/Tablet/Laptop) ===
-        const API_URL = "https://script.google.com/macros/s/AKfycbwFxIjSNyr7DqdoTo-jHJUvIei5Tz-ZZT3_U4QgoCPzcPJ6EsyzbknGdqvL6DGa6rfa/exec";
+        const API_URL = "https://script.google.com/macros/s/AKfycbxERyE4ZknaqUHb9hVZ6i9PIM0cR08KlCH1wPa3xImHN4aDXwfITeBgNSOjG5vB81ow/exec";
 
         // --- PWA & IOS INSTALLABILITY SETUP ---
         let deferredInstallPrompt = null;
@@ -2378,7 +2380,7 @@
                     </tr>
                     <tr>
                         <td colspan="2" class="text-center" style="padding-top:6px;">
-                            <img src="https://res.cloudinary.com/fe0k2zlt/image/upload/v1795254999/qris.jpg" alt="QRIS" style="width:95px; height:95px; object-fit:contain; border:1px solid #000; padding:2px;">
+                            <img src="https://res.cloudinary.com/fe0k2zlt/image/upload/v1795319826/QR_Helmi.jpg" alt="QRIS" style="width:95px; height:95px; object-fit:contain; border:1px solid #000; padding:2px;">
                         </td>
                     </tr>
                 `;
@@ -2598,7 +2600,7 @@
             } else if (metodeBayar === 'QRIS') {
                 confirmHtml += `
                     <div class="flex flex-col items-center pt-2 border-t">
-                        <img src="https://res.cloudinary.com/fe0k2zlt/image/upload/v1795254999/qris.jpg" alt="QRIS" class="w-32 h-32 object-contain border rounded-lg p-1 bg-white">
+                        <img src="https://res.cloudinary.com/fe0k2zlt/image/upload/v1795319826/QR_Helmi.jpg" alt="QRIS" class="w-32 h-32 object-contain border rounded-lg p-1 bg-white">
                         <span class="text-[11px] text-slate-500 mt-1">Pembayaran Non-Tunai QRIS</span>
                     </div>
                 `;
@@ -2834,12 +2836,12 @@
                     selResto.disabled = true;
                 }
             }
-            switchLaporanTab('all_sales');
+            switchLaporanTab('per_transaksi');
         }
 
         function switchLaporanTab(tab) {
             State.lapTab = tab;
-            ['all_sales', 'tunai', 'qris', 'tempo', 'inbound', 'outbound', 'rusak'].forEach(t => {
+            ['per_transaksi', 'all_sales', 'tunai', 'qris', 'tempo', 'hutang_supplier', 'inbound', 'outbound', 'rusak'].forEach(t => {
                 const btn = document.getElementById(`lapTab-${t}`);
                 if (btn) {
                     btn.className = t === tab
@@ -2850,8 +2852,37 @@
             renderLaporanData();
         }
 
+        function buildGroupedSalesPerNota(salesList) {
+            const grouped = {};
+            (salesList || []).forEach(r => {
+                const rawId = String(r.ID || '').trim();
+                const parts = rawId.split('-');
+                const baseNota = (parts.length >= 2 && parts[0] === 'INV') ? `${parts[0]}-${parts[1]}` : rawId;
+                const totalItem = parseCleanNumber(r.TotalHarga, 0);
+                const qtyItem = Math.abs(parseCleanNumber(r.Qty, 0));
+
+                if (!grouped[baseNota]) {
+                    grouped[baseNota] = {
+                        ID: baseNota,
+                        Tanggal: r.Tanggal,
+                        Resto: r.Resto,
+                        Petugas: r.Petugas,
+                        MetodeBayar: r.MetodeBayar || 'Tunai',
+                        InfoTempo: r.InfoTempo || '-',
+                        TotalQty: 0,
+                        TotalOmzet: 0,
+                        ItemsSummary: []
+                    };
+                }
+                grouped[baseNota].TotalQty += qtyItem;
+                grouped[baseNota].TotalOmzet += totalItem;
+                grouped[baseNota].ItemsSummary.push(`${r.NamaBahan} (${qtyItem} ${r.Satuan})`);
+            });
+            return Object.values(grouped);
+        }
+
         function renderLaporanData() {
-            const tab = State.lapTab || 'all_sales';
+            const tab = State.lapTab || 'per_transaksi';
             const sDate = document.getElementById('lapStartDate')?.value || '';
             const eDate = document.getElementById('lapEndDate')?.value || '';
             const restoVal = document.getElementById('lapFilterResto')?.value || 'ALL';
@@ -2862,10 +2893,12 @@
                 : [State.user.resto];
 
             let source = [];
-            if (tab === 'all_sales') source = State.salesHistory;
+            if (tab === 'per_transaksi') source = buildGroupedSalesPerNota(State.salesHistory);
+            else if (tab === 'all_sales') source = State.salesHistory;
             else if (tab === 'tunai') source = State.salesHistory.filter(s => String(s.MetodeBayar || 'Tunai').toLowerCase() === 'tunai');
             else if (tab === 'qris') source = State.salesHistory.filter(s => String(s.MetodeBayar || '').toLowerCase() === 'qris');
             else if (tab === 'tempo') source = State.salesHistory.filter(s => String(s.MetodeBayar || '').toLowerCase() === 'tempo');
+            else if (tab === 'hutang_supplier') source = State.inHistory.filter(i => String(i.StatusHutang || '').toLowerCase() === 'belum lunas' || (i.TempoSupplier && i.TempoSupplier !== '-' && String(i.StatusHutang || '').toLowerCase() !== 'lunas'));
             else if (tab === 'inbound') source = State.inHistory;
             else if (tab === 'outbound') source = State.outHistory;
             else if (tab === 'rusak') source = State.barangRusak;
@@ -2896,35 +2929,98 @@
             const tab = State.lapTab;
             const data = State.lapFiltered;
 
-            if (['all_sales', 'tunai', 'qris', 'tempo'].includes(tab)) {
+            if (tab === 'per_transaksi') {
+                let totalOmzet = 0;
+                let totalTunai = 0;
+                let totalQris = 0;
+                let totalPiutang = 0;
+
+                data.forEach(r => {
+                    const nom = parseCleanNumber(r.TotalOmzet, 0);
+                    totalOmzet += nom;
+                    const m = String(r.MetodeBayar || 'Tunai').toLowerCase();
+                    if (m === 'qris') totalQris += nom;
+                    else if (m === 'tempo') totalPiutang += nom;
+                    else totalTunai += nom;
+                });
+
+                box.innerHTML = `
+                    <div class="bg-blue-50 border border-blue-100 p-3.5 rounded-xl">
+                        <span class="text-[11px] font-bold text-blue-600 uppercase">Total Nota Transaksi</span>
+                        <div class="text-xl font-extrabold text-slate-800 mt-0.5">${data.length} <span class="text-xs font-normal text-slate-500">Nota</span></div>
+                        <div class="text-[11px] text-emerald-700 font-semibold mt-0.5">Cash: ${formatRupiah(totalTunai)}</div>
+                    </div>
+                    <div class="bg-emerald-50 border border-emerald-100 p-3.5 rounded-xl">
+                        <span class="text-[11px] font-bold text-emerald-600 uppercase">Total Hasil Omzet</span>
+                        <div class="text-xl font-extrabold text-emerald-700 mt-0.5">${formatRupiah(totalOmzet)}</div>
+                        <div class="text-[11px] text-blue-700 font-semibold mt-0.5">QRIS: ${formatRupiah(totalQris)}</div>
+                    </div>
+                    <div class="bg-amber-50 border border-amber-200 p-3.5 rounded-xl">
+                        <span class="text-[11px] font-bold text-amber-700 uppercase">Total Piutang (Tempo)</span>
+                        <div class="text-xl font-extrabold text-amber-800 mt-0.5">${formatRupiah(totalPiutang)}</div>
+                        <div class="text-[11px] text-amber-700 mt-0.5">Belum Tertagih / Kredit</div>
+                    </div>
+                    <div class="bg-slate-50 border border-slate-200 p-3.5 rounded-xl">
+                        <span class="text-[11px] font-bold text-slate-500 uppercase">Omzet Bersih Diterima</span>
+                        <div class="text-xl font-extrabold text-slate-800 mt-0.5">${formatRupiah(totalTunai + totalQris)}</div>
+                        <div class="text-[11px] text-slate-500 mt-0.5">Tunai + QRIS</div>
+                    </div>
+                `;
+            } else if (['all_sales', 'tunai', 'qris', 'tempo'].includes(tab)) {
                 let totalOmzet = 0;
                 let totalQty = 0;
                 data.forEach(r => {
-                    totalOmzet += parseFloat(r.TotalHarga) || 0;
-                    totalQty += Math.abs(parseFloat(r.Qty) || 0);
+                    totalOmzet += parseCleanNumber(r.TotalHarga, 0);
+                    totalQty += Math.abs(parseCleanNumber(r.Qty, 0));
+                });
+                const labelNom = tab === 'tempo' ? 'Total Piutang Pelanggan' : 'Total Omzet';
+                box.innerHTML = `
+                    <div class="bg-blue-50 border border-blue-100 p-3.5 rounded-xl">
+                        <span class="text-[11px] font-bold text-blue-600 uppercase">Total Item Terjual</span>
+                        <div class="text-xl font-extrabold text-slate-800 mt-0.5">${data.length} <span class="text-xs font-normal text-slate-500">Baris</span></div>
+                    </div>
+                    <div class="${tab === 'tempo' ? 'bg-amber-50 border-amber-200' : 'bg-emerald-50 border-emerald-100'} p-3.5 rounded-xl">
+                        <span class="text-[11px] font-bold ${tab === 'tempo' ? 'text-amber-700' : 'text-emerald-600'} uppercase">${labelNom}</span>
+                        <div class="text-xl font-extrabold ${tab === 'tempo' ? 'text-amber-800' : 'text-emerald-700'} mt-0.5">${formatRupiah(totalOmzet)}</div>
+                    </div>
+                    <div class="bg-slate-50 border border-slate-200 p-3.5 rounded-xl">
+                        <span class="text-[11px] font-bold text-slate-500 uppercase">Total Kuantitas</span>
+                        <div class="text-xl font-extrabold text-slate-800 mt-0.5">${totalQty} <span class="text-xs font-normal text-slate-500">Item</span></div>
+                    </div>
+                `;
+            } else if (tab === 'hutang_supplier' || tab === 'inbound') {
+                let totalQty = 0;
+                let totalBeli = 0;
+                let totalHutang = 0;
+                data.forEach(r => {
+                    totalQty += Math.abs(parseCleanNumber(r.Qty, 0));
+                    const hb = parseCleanNumber(r.HargaBeli, 0);
+                    totalBeli += hb;
+                    if (String(r.StatusHutang || '').toLowerCase() === 'belum lunas' || (r.TempoSupplier && r.TempoSupplier !== '-' && String(r.StatusHutang || '').toLowerCase() !== 'lunas')) {
+                        totalHutang += hb;
+                    }
                 });
                 box.innerHTML = `
                     <div class="bg-blue-50 border border-blue-100 p-3.5 rounded-xl">
-                        <span class="text-[11px] font-bold text-blue-600 uppercase">Total Transaksi</span>
-                        <div class="text-xl font-extrabold text-slate-800 mt-0.5">${data.length} <span class="text-xs font-normal text-slate-500">Baris</span></div>
+                        <span class="text-[11px] font-bold text-blue-600 uppercase">Total Transaksi Masuk</span>
+                        <div class="text-xl font-extrabold text-slate-800 mt-0.5">${data.length} <span class="text-xs font-normal text-slate-500">Data</span></div>
                     </div>
                     <div class="bg-emerald-50 border border-emerald-100 p-3.5 rounded-xl">
-                        <span class="text-[11px] font-bold text-emerald-600 uppercase">Total Omzet</span>
-                        <div class="text-xl font-extrabold text-emerald-700 mt-0.5">${formatRupiah(totalOmzet)}</div>
+                        <span class="text-[11px] font-bold text-emerald-600 uppercase">Total Pembelian Supplier</span>
+                        <div class="text-xl font-extrabold text-emerald-700 mt-0.5">${formatRupiah(totalBeli)}</div>
+                    </div>
+                    <div class="bg-rose-50 border border-rose-200 p-3.5 rounded-xl">
+                        <span class="text-[11px] font-bold text-rose-700 uppercase">Total Hutang ke Supplier</span>
+                        <div class="text-xl font-extrabold text-rose-700 mt-0.5">${formatRupiah(totalHutang)}</div>
                     </div>
                     <div class="bg-slate-50 border border-slate-200 p-3.5 rounded-xl">
-                        <span class="text-[11px] font-bold text-slate-500 uppercase">Total Qty Terjual</span>
-                        <div class="text-xl font-extrabold text-slate-800 mt-0.5">${totalQty} <span class="text-xs font-normal text-slate-500">Item</span></div>
-                    </div>
-                    <div class="bg-amber-50 border border-amber-100 p-3.5 rounded-xl">
-                        <span class="text-[11px] font-bold text-amber-700 uppercase">Kategori Laporan</span>
-                        <div class="text-sm font-extrabold text-amber-900 mt-1.5 uppercase">${tab.replace('_', ' ')}</div>
+                        <span class="text-[11px] font-bold text-slate-500 uppercase">Total Kuantitas Masuk</span>
+                        <div class="text-xl font-extrabold text-slate-800 mt-0.5">${totalQty} <span class="text-xs font-normal text-slate-500">Unit</span></div>
                     </div>
                 `;
             } else {
                 let totalQty = 0;
-                data.forEach(r => totalQty += Math.abs(parseFloat(r.Qty) || 0));
-                const tempoCount = tab === 'inbound' ? data.filter(r => r.TempoSupplier && r.TempoSupplier !== '-').length : 0;
+                data.forEach(r => totalQty += Math.abs(parseCleanNumber(r.Qty, 0)));
                 box.innerHTML = `
                     <div class="bg-blue-50 border border-blue-100 p-3.5 rounded-xl">
                         <span class="text-[11px] font-bold text-blue-600 uppercase">Total Record</span>
@@ -2934,11 +3030,6 @@
                         <span class="text-[11px] font-bold text-emerald-600 uppercase">Total Kuantitas</span>
                         <div class="text-xl font-extrabold text-emerald-700 mt-0.5">${totalQty} <span class="text-xs font-normal text-slate-500">Unit</span></div>
                     </div>
-                    ${tab === 'inbound' ? `
-                    <div class="bg-amber-50 border border-amber-100 p-3.5 rounded-xl">
-                        <span class="text-[11px] font-bold text-amber-700 uppercase">Ada Tempo Supplier</span>
-                        <div class="text-xl font-extrabold text-amber-800 mt-0.5">${tempoCount} <span class="text-xs font-normal">Transaksi</span></div>
-                    </div>` : ''}
                 `;
             }
         }
@@ -2951,9 +3042,20 @@
             if (!thead || !tbody) return;
 
             const tab = State.lapTab;
+            const isPerTransaksi = tab === 'per_transaksi';
             const isSales = ['all_sales', 'tunai', 'qris', 'tempo'].includes(tab);
 
-            if (isSales) {
+            if (isPerTransaksi) {
+                thead.innerHTML = `<tr>
+                    <th class="px-4 py-3 font-medium">No. Nota & Waktu</th>
+                    <th class="px-4 py-3 font-medium">Rincian Item Dibeli</th>
+                    <th class="px-4 py-3 font-medium text-center">Jml Item</th>
+                    <th class="px-4 py-3 font-medium">Metode & Status Piutang</th>
+                    <th class="px-4 py-3 font-medium text-right">Total Nota</th>
+                    <th class="px-4 py-3 font-medium">Toko / Kasir</th>
+                    <th class="px-4 py-3 font-medium text-center">Aksi</th>
+                </tr>`;
+            } else if (isSales) {
                 thead.innerHTML = `<tr>
                     <th class="px-4 py-3 font-medium">No. Nota & Waktu</th>
                     <th class="px-4 py-3 font-medium">Barang</th>
@@ -2963,14 +3065,16 @@
                     <th class="px-4 py-3 font-medium">Metode & Tempo</th>
                     <th class="px-4 py-3 font-medium">Toko / Kasir</th>
                 </tr>`;
-            } else if (tab === 'inbound') {
+            } else if (tab === 'inbound' || tab === 'hutang_supplier') {
                 thead.innerHTML = `<tr>
                     <th class="px-4 py-3 font-medium">Tanggal</th>
                     <th class="px-4 py-3 font-medium">Barang</th>
                     <th class="px-4 py-3 font-medium">Qty</th>
                     <th class="px-4 py-3 font-medium">Supplier</th>
-                    <th class="px-4 py-3 font-medium">Jatuh Tempo</th>
+                    <th class="px-4 py-3 font-medium text-right">Harga Beli</th>
+                    <th class="px-4 py-3 font-medium">Status & Jatuh Tempo</th>
                     <th class="px-4 py-3 font-medium">Toko / Petugas</th>
+                    <th class="px-4 py-3 font-medium text-center">Aksi</th>
                 </tr>`;
             } else if (tab === 'rusak') {
                 thead.innerHTML = `<tr>
@@ -3002,7 +3106,22 @@
             const paginated = State.lapFiltered.slice(start, start + 10);
 
             tbody.innerHTML = paginated.map(r => {
-                if (isSales) {
+                if (isPerTransaksi) {
+                    const metode = r.MetodeBayar || 'Tunai';
+                    let badge = 'bg-emerald-100 text-emerald-700';
+                    if (metode === 'QRIS') badge = 'bg-blue-100 text-blue-700';
+                    else if (metode === 'Tempo') badge = 'bg-amber-100 text-amber-800';
+
+                    return `<tr class="hover:bg-slate-50">
+                        <td class="px-4 py-3"><div class="font-bold font-mono text-xs text-blue-600">${r.ID}</div><div class="text-[10px] text-slate-400">${r.Tanggal}</div></td>
+                        <td class="px-4 py-3 text-xs whitespace-normal max-w-[260px] text-slate-700">${r.ItemsSummary.join(', ')}</td>
+                        <td class="px-4 py-3 text-center font-bold">${r.TotalQty}</td>
+                        <td class="px-4 py-3"><span class="px-2 py-0.5 rounded text-[10px] font-bold ${badge}">${metode === 'Tempo' ? 'PIUTANG (TEMPO)' : metode}</span>${r.InfoTempo && r.InfoTempo !== '-' ? `<div class="text-[10px] text-amber-700 mt-0.5">${r.InfoTempo}</div>` : ''}</td>
+                        <td class="px-4 py-3 text-right font-extrabold text-emerald-600">${formatRupiah(r.TotalOmzet)}</td>
+                        <td class="px-4 py-3 text-xs"><div class="font-semibold">${r.Resto}</div><div class="text-[10px] text-slate-400">${r.Petugas}</div></td>
+                        <td class="px-4 py-3 text-center"><button onclick="reprintPosReceipt('${r.ID}')" class="text-blue-600 hover:bg-blue-50 p-1.5 rounded" title="Cetak Struk Nota"><i class="fa-solid fa-print"></i></button></td>
+                    </tr>`;
+                } else if (isSales) {
                     const metode = r.MetodeBayar || 'Tunai';
                     let badge = 'bg-emerald-100 text-emerald-700';
                     if (metode === 'QRIS') badge = 'bg-blue-100 text-blue-700';
@@ -3017,14 +3136,24 @@
                         <td class="px-4 py-3"><span class="px-2 py-0.5 rounded text-[10px] font-bold ${badge}">${metode}</span>${r.InfoTempo && r.InfoTempo !== '-' ? `<div class="text-[10px] text-amber-700 mt-0.5">${r.InfoTempo}</div>` : ''}</td>
                         <td class="px-4 py-3 text-xs"><div class="font-semibold">${r.Resto}</div><div class="text-[10px] text-slate-400">${r.Petugas}</div></td>
                     </tr>`;
-                } else if (tab === 'inbound') {
-                    return `<tr class="hover:bg-slate-50">
+                } else if (tab === 'inbound' || tab === 'hutang_supplier') {
+                    const isBelumLunas = String(r.StatusHutang || '').toLowerCase() === 'belum lunas' || (r.TempoSupplier && r.TempoSupplier !== '-' && String(r.StatusHutang || '').toLowerCase() !== 'lunas');
+                    const statusBadge = isBelumLunas
+                        ? `<span class="bg-rose-100 text-rose-700 font-bold px-2 py-0.5 rounded text-[10px]">BELUM LUNAS (HUTANG)</span>`
+                        : `<span class="bg-emerald-100 text-emerald-700 font-bold px-2 py-0.5 rounded text-[10px]">LUNAS</span>`;
+                    const lunasBtn = isBelumLunas
+                        ? `<button onclick="markSupplierDebtPaid('${r.ID}')" class="bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold px-2.5 py-1 rounded shadow-sm transition"><i class="fa-solid fa-check mr-1"></i>Lunasi</button>`
+                        : `<span class="text-xs text-slate-400">-</span>`;
+
+                    return `<tr class="hover:bg-slate-50 ${isBelumLunas ? 'bg-rose-50/30' : ''}">
                         <td class="px-4 py-3 text-xs">${r.Tanggal}</td>
                         <td class="px-4 py-3"><div class="font-medium">${r.NamaBahan}</div><div class="text-[10px] font-mono text-slate-400">${r.KodeBahan}</div></td>
                         <td class="px-4 py-3 font-bold text-emerald-600">${Math.abs(parseFloat(r.Qty))} <span class="text-xs font-normal">${r.Satuan}</span></td>
                         <td class="px-4 py-3 text-xs font-semibold">${r.Supplier || '-'}</td>
-                        <td class="px-4 py-3 text-xs">${r.TempoSupplier && r.TempoSupplier !== '-' ? `<span class="bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded">${r.TempoSupplier}</span>` : '-'}</td>
+                        <td class="px-4 py-3 text-right font-bold text-slate-800">${formatRupiah(parseCleanNumber(r.HargaBeli, 0))}</td>
+                        <td class="px-4 py-3 text-xs">${statusBadge}${r.TempoSupplier && r.TempoSupplier !== '-' ? `<div class="text-[10px] text-amber-800 font-bold mt-0.5">Tempo: ${r.TempoSupplier}</div>` : ''}</td>
                         <td class="px-4 py-3 text-xs"><div class="font-semibold">${r.Resto}</div><div class="text-[10px] text-slate-400">${r.Petugas}</div></td>
+                        <td class="px-4 py-3 text-center">${lunasBtn}</td>
                     </tr>`;
                 } else if (tab === 'rusak') {
                     return `<tr class="hover:bg-slate-50">
@@ -3048,6 +3177,26 @@
             info.textContent = `Menampilkan ${start + 1} - ${Math.min(start + 10, State.lapFiltered.length)} dari ${State.lapFiltered.length} data`;
         }
 
+        function markSupplierDebtPaid(id) {
+            Swal.fire({
+                title: 'Lunasi Hutang Supplier?',
+                text: 'Status transaksi barang masuk ini akan diubah menjadi Lunas.',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#059669',
+                confirmButtonText: 'Ya, Tandai Lunas'
+            }).then(r => {
+                if (r.isConfirmed) {
+                    Swal.fire({title: 'Memperbarui...', allowOutsideClick: false, didOpen: () => Swal.showLoading()});
+                    runGas('paySupplierDebt', id).then(d => {
+                        syncLocalState(d, false);
+                        renderLaporanData();
+                        Swal.fire('Berhasil', 'Hutang supplier telah ditandai Lunas.', 'success');
+                    }).catch(e => Swal.fire('Error', 'Gagal memperbarui status hutang.', 'error'));
+                }
+            });
+        }
+
         function changeLapPage(d) {
             const m = Math.ceil(State.lapFiltered.length / 10);
             const n = State.lapPage + d;
@@ -3063,23 +3212,28 @@
             }
             const tab = State.lapTab;
             const titleMap = {
-                all_sales: 'Laporan Semua Penjualan',
+                per_transaksi: 'Laporan Penjualan Per Transaksi',
+                all_sales: 'Laporan Semua Penjualan Per Item',
                 tunai: 'Laporan Penjualan Tunai',
                 qris: 'Laporan Penjualan QRIS',
-                tempo: 'Laporan Penjualan Tempo',
+                tempo: 'Laporan Piutang Pelanggan Tempo',
+                hutang_supplier: 'Laporan Hutang ke Supplier',
                 inbound: 'Laporan Barang Masuk & Supplier',
                 outbound: 'Laporan Barang Keluar',
                 rusak: 'Laporan Barang Rusak'
             };
             const title = titleMap[tab] || 'Laporan Transaksi';
+            const isPerTransaksi = tab === 'per_transaksi';
             const isSales = ['all_sales', 'tunai', 'qris', 'tempo'].includes(tab);
-            const columns = isSales
-                ? ['ID', 'Tanggal', 'KodeBahan', 'NamaBahan', 'Qty', 'Satuan', 'HargaSatuan', 'TotalHarga', 'MetodeBayar', 'InfoTempo', 'Petugas', 'Resto']
-                : (tab === 'inbound'
-                    ? ['ID', 'Tanggal', 'KodeBahan', 'NamaBahan', 'Kategori', 'Qty', 'Satuan', 'Supplier', 'TempoSupplier', 'Petugas', 'Resto']
-                    : (tab === 'rusak'
-                        ? ['ID', 'Tanggal', 'KodeBahan', 'NamaBahan', 'Kategori', 'Qty', 'Satuan', 'Keterangan', 'Petugas', 'Resto']
-                        : ['ID', 'Tanggal', 'KodeBahan', 'NamaBahan', 'Kategori', 'Qty', 'Satuan', 'Petugas', 'Resto']));
+            const columns = isPerTransaksi
+                ? ['ID', 'Tanggal', 'TotalQty', 'TotalOmzet', 'MetodeBayar', 'InfoTempo', 'Petugas', 'Resto']
+                : (isSales
+                    ? ['ID', 'Tanggal', 'KodeBahan', 'NamaBahan', 'Qty', 'Satuan', 'HargaSatuan', 'TotalHarga', 'MetodeBayar', 'InfoTempo', 'Petugas', 'Resto']
+                    : ((tab === 'inbound' || tab === 'hutang_supplier')
+                        ? ['ID', 'Tanggal', 'KodeBahan', 'NamaBahan', 'Qty', 'Satuan', 'Supplier', 'HargaBeli', 'StatusHutang', 'TempoSupplier', 'Petugas', 'Resto']
+                        : (tab === 'rusak'
+                            ? ['ID', 'Tanggal', 'KodeBahan', 'NamaBahan', 'Kategori', 'Qty', 'Satuan', 'Keterangan', 'Petugas', 'Resto']
+                            : ['ID', 'Tanggal', 'KodeBahan', 'NamaBahan', 'Kategori', 'Qty', 'Satuan', 'Petugas', 'Resto'])));
 
             const fileName = `${title.replace(/ /g, '_')}_${new Date().toLocaleDateString('id-ID').replace(/\//g, '-')}`;
 
@@ -3298,7 +3452,7 @@
             if (type === 'rusak') {
                 scanHistHead.innerHTML = `<tr><th class="px-5 py-3 font-medium">Tanggal</th><th class="px-5 py-3 font-medium">Barang</th><th class="px-5 py-3 font-medium">Qty</th><th class="px-5 py-3 font-medium">Keterangan</th><th class="px-5 py-3 font-medium">Toko</th><th class="px-5 py-3 font-medium text-center">Aksi</th></tr>`;
             } else if (type === 'inbound') {
-                scanHistHead.innerHTML = `<tr><th class="px-5 py-3 font-medium">Tanggal</th><th class="px-5 py-3 font-medium">Barang</th><th class="px-5 py-3 font-medium">Qty</th><th class="px-5 py-3 font-medium">Supplier & Tempo</th><th class="px-5 py-3 font-medium">Toko</th><th class="px-5 py-3 font-medium text-center">Aksi</th></tr>`;
+                scanHistHead.innerHTML = `<tr><th class="px-5 py-3 font-medium">Tanggal</th><th class="px-5 py-3 font-medium">Barang</th><th class="px-5 py-3 font-medium">Qty</th><th class="px-5 py-3 font-medium">Supplier, Harga & Tempo</th><th class="px-5 py-3 font-medium">Toko</th><th class="px-5 py-3 font-medium text-center">Aksi</th></tr>`;
             } else {
                 scanHistHead.innerHTML = `<tr><th class="px-5 py-3 font-medium">Tanggal</th><th class="px-5 py-3 font-medium">Kode Barang</th><th class="px-5 py-3 font-medium">Nama Barang</th><th class="px-5 py-3 font-medium">Kategori</th><th class="px-5 py-3 font-medium">Qty</th><th class="px-5 py-3 font-medium">Toko</th><th class="px-5 py-3 font-medium text-center">Aksi</th></tr>`;
             }
@@ -3708,6 +3862,12 @@
         function submitTransaction() {
             const btn = document.getElementById('btnSubmitTrx');
             const rawQty = document.getElementById('frmQty').value;
+            const hargaBeliVal = document.getElementById('frmHargaBeli') ? parseCleanNumber(document.getElementById('frmHargaBeli').value, 0) : 0;
+            const tempoSupVal = document.getElementById('frmTempoSupplier') ? document.getElementById('frmTempoSupplier').value : '-';
+            let statusHutangVal = document.getElementById('frmStatusHutang') ? document.getElementById('frmStatusHutang').value : 'Lunas';
+            if (tempoSupVal && tempoSupVal !== '-' && !document.getElementById('frmStatusHutang').dataset.userChanged) {
+                statusHutangVal = 'Belum Lunas';
+            }
             
             const payload = {
                 tanggal: document.getElementById('frmTanggal').value,
@@ -3719,7 +3879,9 @@
                 petugas: State.user.name, 
                 resto: document.getElementById('frmResto').value,
                 supplier: document.getElementById('frmSupplier') ? document.getElementById('frmSupplier').value.trim() : '-',
-                tempoSupplier: document.getElementById('frmTempoSupplier') ? document.getElementById('frmTempoSupplier').value : '-',
+                hargaBeli: hargaBeliVal,
+                statusHutang: statusHutangVal,
+                tempoSupplier: tempoSupVal || '-',
                 keterangan: document.getElementById('frmKeterangan') ? document.getElementById('frmKeterangan').value : '-'
             };
 
@@ -3864,12 +4026,17 @@
                             <button onclick="deleteTransaction('${r.ID}', '${State.transactionType}')" class="text-red-500 hover:bg-red-50 p-1.5 rounded" title="Hapus & Rollback Stock"><i class="fa-solid fa-trash"></i></button>
                             </td></tr>`;
                         } else if (State.transactionType === 'inbound') {
+                            const hargaBeliNum = parseCleanNumber(r.HargaBeli, 0);
+                            const isHutang = String(r.StatusHutang || '').toLowerCase() === 'belum lunas' || (r.TempoSupplier && r.TempoSupplier !== '-' && String(r.StatusHutang || '').toLowerCase() !== 'lunas');
+                            const hargaBadge = hargaBeliNum > 0
+                                ? `<div class="text-[11px] font-bold text-slate-800">${formatRupiah(hargaBeliNum)} <span class="px-1.5 py-0.5 rounded text-[9px] ${isHutang ? 'bg-rose-100 text-rose-700' : 'bg-emerald-100 text-emerald-700'}">${isHutang ? 'HUTANG' : 'LUNAS'}</span></div>`
+                                : '';
                             const tempoBadge = (r.TempoSupplier && r.TempoSupplier !== '-')
                                 ? `<div class="text-[10px] font-bold text-amber-700 mt-0.5"><i class="fa-solid fa-clock mr-1"></i>Tempo: ${r.TempoSupplier}</div>`
                                 : '';
                             return `<tr class="hover:bg-slate-50"><td class="px-5 py-3 text-xs">${r.Tanggal}</td><td class="px-5 py-3"><div class="font-medium">${r.NamaBahan}</div><div class="text-[10px] font-mono text-slate-500">${r.KodeBahan}</div></td>
                             <td class="px-5 py-3 font-bold text-emerald-600">${Math.abs(parseFloat(r.Qty))} <span class="text-xs font-normal">${r.Satuan}</span></td>
-                            <td class="px-5 py-3 text-xs"><div class="font-semibold text-slate-700">${r.Supplier || '-'}</div>${tempoBadge}</td>
+                            <td class="px-5 py-3 text-xs"><div class="font-semibold text-slate-700">${r.Supplier || '-'}</div>${hargaBadge}${tempoBadge}</td>
                             <td class="px-5 py-3 text-xs">${r.Resto}</td>
                             <td class="px-5 py-3 text-center whitespace-nowrap">
                             <button onclick="viewTransactionDetail('${r.ID}')" class="text-blue-500 hover:bg-blue-50 p-1.5 rounded mr-1" title="Lihat Detail"><i class="fa-solid fa-eye"></i></button>
@@ -3929,6 +4096,7 @@
                 extraFields = `<div><label class="block text-xs font-medium text-slate-500 mb-1">Keterangan / Alasan</label><input type="text" id="editTrxKet" class="w-full border border-slate-300 px-3 py-2 text-sm rounded-lg outline-none focus:ring-2 focus:ring-blue-500" value="${trx.Keterangan || ''}"></div>`;
             } else if (type === 'inbound') {
                 const supOpts = (State.suppliers || []).map(s => `<option value="${s.NamaSupplier}">`).join('');
+                const isHutang = String(trx.StatusHutang || '').toLowerCase() === 'belum lunas';
                 extraFields = `
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         <div>
@@ -3937,8 +4105,19 @@
                             <datalist id="editSupList">${supOpts}</datalist>
                         </div>
                         <div>
+                            <label class="block text-xs font-medium text-slate-500 mb-1">Harga Beli Supplier (Rp)</label>
+                            <input type="text" inputmode="numeric" id="editTrxHargaBeli" class="w-full border border-slate-300 px-3 py-2 text-sm rounded-lg font-bold outline-none focus:ring-2 focus:ring-blue-500" value="${parseCleanNumber(trx.HargaBeli, 0)}">
+                        </div>
+                        <div>
                             <label class="block text-xs font-medium text-slate-500 mb-1">Jatuh Tempo Supplier</label>
                             <input type="date" id="editTrxTempoSup" class="w-full border border-slate-300 px-3 py-2 text-sm rounded-lg outline-none focus:ring-2 focus:ring-blue-500" value="${trx.TempoSupplier && trx.TempoSupplier !== '-' ? trx.TempoSupplier : ''}">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-500 mb-1">Status Pembayaran</label>
+                            <select id="editTrxStatusHutang" class="w-full border border-slate-300 px-3 py-2 text-sm rounded-lg bg-white outline-none focus:ring-2 focus:ring-blue-500">
+                                <option value="Lunas" ${!isHutang ? 'selected' : ''}>Lunas</option>
+                                <option value="Belum Lunas" ${isHutang ? 'selected' : ''}>Belum Lunas (Hutang)</option>
+                            </select>
                         </div>
                     </div>
                 `;
@@ -3996,6 +4175,8 @@
                         satuan: document.getElementById('editTrxSatuan').value,
                         resto: document.getElementById('editTrxResto').value,
                         supplier: type === 'inbound' ? (document.getElementById('editTrxSupplier').value.trim() || '-') : '-',
+                        hargaBeli: type === 'inbound' ? parseCleanNumber(document.getElementById('editTrxHargaBeli').value, 0) : 0,
+                        statusHutang: type === 'inbound' ? document.getElementById('editTrxStatusHutang').value : 'Lunas',
                         tempoSupplier: type === 'inbound' ? (document.getElementById('editTrxTempoSup').value || '-') : '-',
                         keterangan: type === 'rusak' ? (document.getElementById('editTrxKet').value || '-') : '-'
                     };
@@ -4030,7 +4211,7 @@
             else { tType = 'Barang Rusak / Hilang'; tColor = 'text-orange-600'; }
 
             const ketHtml = trx.Keterangan ? `<div class="grid grid-cols-1 gap-2 border-b border-slate-200 pb-2 pt-2"><span class="text-slate-500">Keterangan:</span> <span class="font-bold text-slate-800">${trx.Keterangan}</span></div>` : '';
-            const supHtml = trx.Supplier ? `<div class="grid grid-cols-2 gap-2 border-b border-slate-200 pb-2 pt-2"><span class="text-slate-500">Supplier</span> <span class="font-bold text-slate-800">${trx.Supplier}</span><span class="text-slate-500">Jatuh Tempo</span> <span class="font-bold text-amber-700">${trx.TempoSupplier || '-'}</span></div>` : '';
+            const supHtml = trx.Supplier ? `<div class="grid grid-cols-2 gap-2 border-b border-slate-200 pb-2 pt-2"><span class="text-slate-500">Supplier</span> <span class="font-bold text-slate-800">${trx.Supplier}</span><span class="text-slate-500">Harga Beli</span> <span class="font-bold text-emerald-700">${formatRupiah(parseCleanNumber(trx.HargaBeli, 0))}</span><span class="text-slate-500">Status</span> <span class="font-bold">${trx.StatusHutang || 'Lunas'}</span><span class="text-slate-500">Jatuh Tempo</span> <span class="font-bold text-amber-700">${trx.TempoSupplier || '-'}</span></div>` : '';
 
             Swal.fire({
                 title: 'Detail Transaksi',
