@@ -274,7 +274,7 @@
                 </button>
             </div>
 
-            <!-- Summary Cards (Revisi: Total Masuk Barang, Total Keluar Barang, Total Omzet Penjualan, dan Lainnya) -->
+            <!-- Summary Cards -->
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 data-fade" id="dashSummaryCards">
                 <!-- 1. Total Masuk Barang -->
                 <div class="bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl p-5 text-white shadow-lg shadow-emerald-500/20 relative overflow-hidden transition-all hover:-translate-y-1">
@@ -655,6 +655,17 @@
                             <label class="block text-xs font-medium text-slate-500 mb-1">Kategori</label>
                             <input type="text" id="frmKategori" class="w-full border border-slate-300 rounded-lg px-3 py-2 bg-slate-100" readonly>
                         </div>
+                        <div class="flex gap-2">
+                            <div class="flex-1">
+                                <label class="block text-xs font-medium text-slate-500 mb-1">Qty</label>
+                                <input type="number" id="frmQty" class="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none" required>
+                            </div>
+                            <div class="w-1/3">
+                                <label class="block text-xs font-medium text-slate-500 mb-1">Satuan</label>
+                                <select id="frmSatuan" class="w-full border border-slate-300 rounded-lg px-3 py-2 bg-slate-100" disabled></select>
+                            </div>
+                        </div>
+
                         <!-- KHUSUS FITUR BARANG MASUK: SUPPLIER, HARGA BELI & TEMPO KE SUPPLIER -->
                         <div id="wrapSupplierInbound" class="hidden col-span-1 md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4 bg-emerald-50/60 p-4 rounded-xl border border-emerald-200">
                             <div>
@@ -672,7 +683,7 @@
                             </div>
                             <div>
                                 <label class="block text-xs font-bold text-emerald-900 mb-1"><i class="fa-solid fa-wallet mr-1 text-blue-600"></i> Status Pembayaran ke Supplier</label>
-                                <select id="frmStatusHutang" class="w-full border border-emerald-300 rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-emerald-500 outline-none font-bold text-slate-700">
+                                <select id="frmStatusHutang" onchange="this.dataset.userChanged='1'" class="w-full border border-emerald-300 rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-emerald-500 outline-none font-bold text-slate-700">
                                     <option value="Lunas">Lunas (Cash / Transfer)</option>
                                     <option value="Belum Lunas">Belum Lunas (Hutang / Tempo)</option>
                                 </select>
@@ -753,14 +764,15 @@
         </div>
     </template>
 
-    <!-- 4. LAPORAN LENGKAP (PENJUALAN, TUNAI, QRIS, TEMPO, MASUK, KELUAR, RUSAK) -->
+    <!-- 4. LAPORAN LENGKAP (DIKENDALIKAN OLEH SUB-MENU SIDEBAR KIRI) -->
     <template id="tpl-laporan">
         <div class="space-y-6 animate-fade-in pb-24 md:pb-6">
             <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
                 <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-5 border-b border-slate-100 pb-4">
                     <div>
-                        <h2 class="text-xl font-bold text-slate-800"><i class="fa-solid fa-file-invoice-dollar text-blue-600 mr-2"></i>Pusat Laporan Transaksi</h2>
-                        <p class="text-xs text-slate-500">Laporan lengkap Penjualan (Tunai, QRIS, Tempo), Barang Masuk, Barang Keluar, dan Barang Rusak.</p>
+                        <span class="text-[11px] font-bold uppercase tracking-wider text-blue-600 bg-blue-50 px-2.5 py-0.5 rounded-md">Laporan Transaksi</span>
+                        <h2 class="text-xl font-bold text-slate-800 mt-1" id="lapActiveTitle">Laporan Penjualan Per Transaksi</h2>
+                        <p class="text-xs text-slate-500" id="lapActiveSubtitle">Rekapitulasi transaksi penjualan, piutang pelanggan, hutang supplier, dan mutasi stok.</p>
                     </div>
                     <div class="flex gap-2 flex-wrap">
                         <button onclick="refreshGlobalData(this)" class="bg-blue-50 text-blue-600 px-3 py-2 rounded-lg text-xs font-bold hover:bg-blue-100 transition flex items-center"><i class="fa-solid fa-rotate-right mr-1.5"></i> Refresh</button>
@@ -769,17 +781,20 @@
                     </div>
                 </div>
 
-                <!-- Tab Kategori Laporan -->
-                <div class="flex overflow-x-auto hide-scroll gap-2 pb-3 mb-4 border-b border-slate-100">
-                    <button onclick="switchLaporanTab('per_transaksi')" id="lapTab-per_transaksi" class="px-3.5 py-2 text-xs font-bold rounded-lg bg-blue-600 text-white whitespace-nowrap transition"><i class="fa-solid fa-receipt mr-1"></i> Penjualan Per Transaksi (Nota)</button>
-                    <button onclick="switchLaporanTab('all_sales')" id="lapTab-all_sales" class="px-3.5 py-2 text-xs font-bold rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 whitespace-nowrap transition">Penjualan Per Item</button>
-                    <button onclick="switchLaporanTab('tunai')" id="lapTab-tunai" class="px-3.5 py-2 text-xs font-bold rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 whitespace-nowrap transition"><i class="fa-solid fa-money-bill-wave mr-1 text-emerald-600"></i> Penjualan Cash/Tunai</button>
-                    <button onclick="switchLaporanTab('qris')" id="lapTab-qris" class="px-3.5 py-2 text-xs font-bold rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 whitespace-nowrap transition"><i class="fa-solid fa-qrcode mr-1 text-blue-600"></i> Penjualan QRIS</button>
-                    <button onclick="switchLaporanTab('tempo')" id="lapTab-tempo" class="px-3.5 py-2 text-xs font-bold rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 whitespace-nowrap transition"><i class="fa-solid fa-calendar-days mr-1 text-amber-600"></i> Piutang Pelanggan (Tempo)</button>
-                    <button onclick="switchLaporanTab('hutang_supplier')" id="lapTab-hutang_supplier" class="px-3.5 py-2 text-xs font-bold rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 whitespace-nowrap transition"><i class="fa-solid fa-file-invoice mr-1 text-rose-600"></i> Hutang ke Supplier</button>
-                    <button onclick="switchLaporanTab('inbound')" id="lapTab-inbound" class="px-3.5 py-2 text-xs font-bold rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 whitespace-nowrap transition"><i class="fa-solid fa-boxes-packing mr-1 text-teal-600"></i> Barang Masuk & Supplier</button>
-                    <button onclick="switchLaporanTab('outbound')" id="lapTab-outbound" class="px-3.5 py-2 text-xs font-bold rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 whitespace-nowrap transition"><i class="fa-solid fa-truck-fast mr-1 text-rose-600"></i> Barang Keluar</button>
-                    <button onclick="switchLaporanTab('rusak')" id="lapTab-rusak" class="px-3.5 py-2 text-xs font-bold rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 whitespace-nowrap transition"><i class="fa-solid fa-triangle-exclamation mr-1 text-orange-600"></i> Barang Rusak</button>
+                <!-- Pilihan Sub-Laporan Khusus Mobile (Di Desktop dikendalikan dari Sub-Menu Sidebar Kiri) -->
+                <div class="md:hidden mb-4">
+                    <label class="block text-xs font-bold text-slate-600 mb-1">Pilih Jenis Laporan:</label>
+                    <select id="lapMobileSubSelect" onchange="openLaporanSub(this.value)" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm font-bold text-blue-700 bg-blue-50/50 outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="per_transaksi">Penjualan Per Transaksi (Nota)</option>
+                        <option value="all_sales">Penjualan Per Item</option>
+                        <option value="tunai">Penjualan Cash / Tunai</option>
+                        <option value="qris">Penjualan QRIS</option>
+                        <option value="tempo">Piutang Pelanggan (Tempo)</option>
+                        <option value="hutang_supplier">Hutang ke Supplier</option>
+                        <option value="inbound">Barang Masuk & Supplier</option>
+                        <option value="outbound">Barang Keluar</option>
+                        <option value="rusak">Barang Rusak</option>
+                    </select>
                 </div>
 
                 <!-- Filter Bar Laporan -->
@@ -881,7 +896,7 @@
         </div>
     </template>
 
-    <!-- 5. SETTINGS -->
+    <!-- 6. SETTINGS -->
     <template id="tpl-settings">
         <div class="max-w-5xl mx-auto space-y-4 md:space-y-6 animate-fade-in pb-10 md:pb-4">
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 shrink-0">
@@ -1099,7 +1114,7 @@
             tableData: [], filteredData: [], currentPage: 1, itemsPerPage: 10,
             scanHistFiltered: [], scanHistPage: 1,
             posHistFiltered: [], posHistPage: 1,
-            lapTab: 'all_sales', lapFiltered: [], lapPage: 1,
+            lapTab: 'per_transaksi', lapMenuOpen: true, lapFiltered: [], lapPage: 1,
             
             // Dashboard Recent History Pagination State
             dashRecentData: [], dashRecentPage: 1,
@@ -1199,7 +1214,6 @@
             }
         }
 
-        // Helper Pembersih Angka (Mendukung format titik/koma seperti 15.000 atau Rp 15.000)
         function parseCleanNumber(val, fallback = 0) {
             if (val === undefined || val === null || val === '') return fallback;
             let str = String(val).trim();
@@ -1234,7 +1248,6 @@
 
         const runGas = async (func, ...args) => {
             try {
-                // Parameter timestamp unik (_t) agar browser HP/Tablet/GitHub Pages tidak meng-cache respons API
                 const urlWithNoCache = `${API_URL}?_t=${Date.now()}`;
                 const response = await fetch(urlWithNoCache, {
                     method: 'POST',
@@ -1263,14 +1276,12 @@
             updateClock(); setInterval(updateClock, 1000);
             setupDynamicPwaManifest();
 
-            // Auto-sinkronisasi saat tab/aplikasi di HP/Tablet/Laptop dibuka kembali
             document.addEventListener('visibilitychange', () => {
                 if (document.visibilityState === 'visible' && State.user) {
                     silentSyncData();
                 }
             });
 
-            // Auto-sinkronisasi latar belakang setiap 30 detik agar HP, Tablet, & Laptop selalu sama
             setInterval(() => {
                 if (State.user && document.visibilityState === 'visible') {
                     silentSyncData();
@@ -1387,7 +1398,6 @@
             State.suppliers = data.suppliers || State.suppliers || [];
             State.users = data.users || State.users || [];
             
-            // Selalu ambil harga & minStock terbaru langsung dari database server agar sinkron di semua perangkat
             let rawMaster = data.master || State.masterData || [];
             State.masterData = rawMaster.map(m => ({
                 ...m,
@@ -1449,7 +1459,6 @@
             updateLowStockIndicators();
         }
 
-        // --- HELPER: CEK BARANG STOK MAU HABIS (WARNING) ---
         function getLowStockItems(filterRestos = null) {
             const targetRestos = filterRestos || (State.user && State.user.role !== 'Admin' ? [State.user.resto] : State.restos);
             let lowList = [];
@@ -1551,11 +1560,28 @@
             if(h >= 11 && h < 15) greeting = 'Selamat Siang'; else if(h >= 15 && h < 18) greeting = 'Selamat Sore'; else if(h >= 18) greeting = 'Selamat Malam';
             if(State.user) document.getElementById('greetingText').textContent = `${greeting}, ${State.user.name.split(' ')[0]}`;
         }
-        // MENU NAVIGASI
+
+        // MENU NAVIGASI DENGAN SUB-MENU LAPORAN DI SIDEBAR KIRI
         const Menus = [
             { id: 'dashboard', icon: 'fa-chart-pie', label: 'Dashboard', roles: ['Admin', 'Admin Warehouse', 'Manager', 'Store Manager', 'Stocker'] },
             { id: 'penjualan', icon: 'fa-cash-register', label: 'Kasir Penjualan', roles: ['Admin', 'Manager', 'Store Manager', 'Stocker'] },
-            { id: 'laporan', icon: 'fa-file-invoice-dollar', label: 'Laporan', roles: ['Admin', 'Admin Warehouse', 'Manager', 'Store Manager', 'Stocker'] },
+            {
+                id: 'laporan',
+                icon: 'fa-file-invoice-dollar',
+                label: 'Laporan',
+                roles: ['Admin', 'Admin Warehouse', 'Manager', 'Store Manager', 'Stocker'],
+                subMenus: [
+                    { id: 'per_transaksi', label: 'Penjualan Per Transaksi' },
+                    { id: 'all_sales', label: 'Penjualan Per Item' },
+                    { id: 'tunai', label: 'Penjualan Cash / Tunai' },
+                    { id: 'qris', label: 'Penjualan QRIS' },
+                    { id: 'tempo', label: 'Piutang Pelanggan (Tempo)' },
+                    { id: 'hutang_supplier', label: 'Hutang ke Supplier' },
+                    { id: 'inbound', label: 'Barang Masuk & Supplier' },
+                    { id: 'outbound', label: 'Barang Keluar' },
+                    { id: 'rusak', label: 'Barang Rusak' }
+                ]
+            },
             { id: 'database', icon: 'fa-database', label: 'Database Stock', roles: ['Admin', 'Admin Warehouse', 'Manager', 'Store Manager', 'Stocker'] },
             { id: 'inbound', icon: 'fa-boxes-packing', label: 'Barang Masuk', roles: ['Admin', 'Manager', 'Store Manager', 'Stocker'] },
             { id: 'outbound', icon: 'fa-truck-fast', label: 'Barang Keluar', roles: ['Admin', 'Admin Warehouse', 'Manager', 'Store Manager', 'Stocker'] },
@@ -1638,17 +1664,65 @@
         }
 
         function renderNavigation() {
-            const dNav = document.getElementById('desktopNav'); const mNav = document.getElementById('mobileNav');
-            dNav.innerHTML = ''; mNav.innerHTML = '';
+            const dNav = document.getElementById('desktopNav');
+            const mNav = document.getElementById('mobileNav');
+            if (!dNav || !mNav || !State.user) return;
+            dNav.innerHTML = '';
+            mNav.innerHTML = '';
+
             Menus.filter(m => m.roles.includes(State.user.role)).forEach(menu => {
-                dNav.innerHTML += `<button onclick="navigate('${menu.id}')" class="w-full text-left px-4 py-3 rounded-xl mb-1 text-sm font-medium transition-all flex items-center gap-3 ${State.currentView === menu.id ? 'menu-active shadow-sm' : 'text-slate-500 hover:bg-slate-100'}"><i class="fa-solid ${menu.icon} w-5 text-center"></i> <span>${menu.label}</span></button>`;
-                mNav.innerHTML += `<button onclick="navigate('${menu.id}')" class="flex flex-col items-center justify-center w-full h-full text-[10px] gap-1 transition-colors ${State.currentView === menu.id ? 'mobile-nav-active font-bold' : 'text-slate-400'}"><i class="fa-solid ${menu.icon} text-lg mb-0.5"></i> <span>${menu.label.split(' ')[0]}</span></button>`;
+                if (menu.subMenus && Array.isArray(menu.subMenus)) {
+                    const isParentActive = State.currentView === menu.id;
+                    const isOpen = State.lapMenuOpen !== false;
+                    const subItemsHtml = menu.subMenus.map(sub => {
+                        const isSubActive = isParentActive && State.lapTab === sub.id;
+                        return `<button onclick="openLaporanSub('${sub.id}')" class="w-full text-left pl-10 pr-3 py-2 rounded-lg text-xs transition-all flex items-center gap-2 ${isSubActive ? 'bg-blue-600 text-white font-bold shadow-sm' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-800'}"><span class="w-1.5 h-1.5 rounded-full ${isSubActive ? 'bg-white' : 'bg-slate-300'}"></span><span class="truncate">${sub.label}</span></button>`;
+                    }).join('');
+
+                    dNav.innerHTML += `
+                        <div class="mb-1">
+                            <button onclick="toggleLaporanMenu()" class="w-full text-left px-4 py-3 rounded-xl text-sm font-medium transition-all flex items-center justify-between ${isParentActive ? 'bg-blue-50 text-blue-600 font-bold' : 'text-slate-500 hover:bg-slate-100'}">
+                                <span class="flex items-center gap-3"><i class="fa-solid ${menu.icon} w-5 text-center"></i> <span>${menu.label}</span></span>
+                                <i class="fa-solid fa-chevron-down text-xs transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}"></i>
+                            </button>
+                            <div class="${isOpen ? 'block' : 'hidden'} mt-1 space-y-1 border-l-2 border-blue-100 ml-5 pl-1">
+                                ${subItemsHtml}
+                            </div>
+                        </div>
+                    `;
+                    mNav.innerHTML += `<button onclick="navigate('${menu.id}')" class="flex flex-col items-center justify-center w-full h-full text-[10px] gap-1 transition-colors ${isParentActive ? 'mobile-nav-active font-bold' : 'text-slate-400'}"><i class="fa-solid ${menu.icon} text-lg mb-0.5"></i> <span>${menu.label.split(' ')[0]}</span></button>`;
+                } else {
+                    dNav.innerHTML += `<button onclick="navigate('${menu.id}')" class="w-full text-left px-4 py-3 rounded-xl mb-1 text-sm font-medium transition-all flex items-center gap-3 ${State.currentView === menu.id ? 'menu-active shadow-sm' : 'text-slate-500 hover:bg-slate-100'}"><i class="fa-solid ${menu.icon} w-5 text-center"></i> <span>${menu.label}</span></button>`;
+                    mNav.innerHTML += `<button onclick="navigate('${menu.id}')" class="flex flex-col items-center justify-center w-full h-full text-[10px] gap-1 transition-colors ${State.currentView === menu.id ? 'mobile-nav-active font-bold' : 'text-slate-400'}"><i class="fa-solid ${menu.icon} text-lg mb-0.5"></i> <span>${menu.label.split(' ')[0]}</span></button>`;
+                }
             });
             if(State.user.role !== 'Admin') document.querySelectorAll('.admin-only-element').forEach(el => el.style.display = 'none');
         }
 
+        function toggleLaporanMenu() {
+            State.lapMenuOpen = !State.lapMenuOpen;
+            if (State.currentView !== 'laporan') {
+                navigate('laporan');
+            } else {
+                renderNavigation();
+            }
+        }
+
+        function openLaporanSub(subId) {
+            State.lapTab = subId;
+            State.lapMenuOpen = true;
+            if (State.currentView !== 'laporan') {
+                navigate('laporan');
+            } else {
+                renderNavigation();
+                switchLaporanTab(subId);
+            }
+        }
+
         function navigate(viewId) {
-            State.currentView = viewId; renderNavigation();
+            State.currentView = viewId;
+            if (viewId === 'laporan') State.lapMenuOpen = true;
+            renderNavigation();
             const container = document.getElementById('viewsContainer'); 
             container.innerHTML = '';
             
@@ -1769,22 +1843,18 @@
                     return selRestos.some(sr => String(sr).trim().toUpperCase() === String(s.Resto).trim().toUpperCase());
                 });
 
-                // 1. Total Masuk Barang
                 let inStats = {};
                 fIn.forEach(trx => inStats[trx.Satuan] = (inStats[trx.Satuan]||0) + Math.abs(parseFloat(trx.Qty) || 0));
 
-                // 2. Total Keluar Barang (Gabungan Outbound Manual + Penjualan Kasir)
                 let outStats = {};
                 fOut.forEach(trx => outStats[trx.Satuan] = (outStats[trx.Satuan]||0) + Math.abs(parseFloat(trx.Qty) || 0));
                 fSales.forEach(trx => outStats[trx.Satuan] = (outStats[trx.Satuan]||0) + Math.abs(parseFloat(trx.Qty) || 0));
 
-                // 3. Total Omzet Penjualan
                 let totalOmzet = 0;
                 fSales.forEach(s => {
                     totalOmzet += parseFloat(s.TotalHarga) || (Math.abs(parseFloat(s.Qty)||0) * (parseFloat(s.HargaSatuan)||0));
                 });
 
-                // 4. Peringatan Stok Mau Habis
                 const lowStockList = getLowStockItems(selRestos);
                 const bannerEl = document.getElementById('dashLowStockBanner');
                 const bannerTxt = document.getElementById('dashLowStockText');
@@ -1798,7 +1868,6 @@
                     }
                 }
 
-                // 5. Barang Rusak & Total SKU
                 let totalRusakQty = 0;
                 fRusak.forEach(r => totalRusakQty += Math.abs(parseFloat(r.Qty) || 0));
 
@@ -1817,7 +1886,6 @@
                 document.getElementById('dashTotalRusak').innerHTML = `${totalRusakQty} <span class="text-sm font-normal text-slate-300">Item</span>`;
                 document.getElementById('dashTotalSku').textContent = `Total Stok Aktif: ${fStock.length} SKU`;
 
-                // Komposisi Kategori Stok
                 let catStats = {};
                 State.categories.forEach(c => catStats[c] = 0);
                 fStock.forEach(s => {
@@ -1825,7 +1893,6 @@
                     else catStats[s.Kategori] = 1;
                 });
 
-                // Riwayat Terkini (Masuk, Keluar, dan Penjualan)
                 State.dashRecentData = [
                     ...fIn.map(x=>({...x, t:'MASUK', nominal: '-'})),
                     ...fOut.map(x=>({...x, t:'KELUAR', nominal: '-'})),
@@ -2704,7 +2771,6 @@
                         renderPosCart();
                         filterPosHistory();
 
-                        // Cetak Struk Otomatis
                         printReceiptStruk(receiptData);
 
                         if (lowStockWarnings.length > 0) {
@@ -2836,19 +2902,30 @@
                     selResto.disabled = true;
                 }
             }
-            switchLaporanTab('per_transaksi');
+            switchLaporanTab(State.lapTab || 'per_transaksi');
         }
 
         function switchLaporanTab(tab) {
             State.lapTab = tab;
-            ['per_transaksi', 'all_sales', 'tunai', 'qris', 'tempo', 'hutang_supplier', 'inbound', 'outbound', 'rusak'].forEach(t => {
-                const btn = document.getElementById(`lapTab-${t}`);
-                if (btn) {
-                    btn.className = t === tab
-                        ? "px-3.5 py-2 text-xs font-bold rounded-lg bg-blue-600 text-white whitespace-nowrap transition shadow-sm"
-                        : "px-3.5 py-2 text-xs font-bold rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 whitespace-nowrap transition";
-                }
-            });
+            const titleMeta = {
+                per_transaksi: { title: 'Laporan Penjualan Per Transaksi (Nota)', sub: 'Rekapitulasi transaksi penjualan berdasarkan nomor nota, metode bayar, dan omzet.' },
+                all_sales: { title: 'Laporan Penjualan Per Item', sub: 'Rincian seluruh item barang yang terjual beserta kuantitas dan harga jual.' },
+                tunai: { title: 'Laporan Penjualan Cash / Tunai', sub: 'Daftar transaksi penjualan dengan pembayaran tunai langsung.' },
+                qris: { title: 'Laporan Penjualan QRIS', sub: 'Daftar transaksi penjualan dengan pembayaran non-tunai QRIS.' },
+                tempo: { title: 'Laporan Piutang Pelanggan (Tempo)', sub: 'Daftar tagihan penjualan kredit / tempo pelanggan beserta jadwal jatuh tempo.' },
+                hutang_supplier: { title: 'Laporan Hutang ke Supplier', sub: 'Daftar pembelian barang masuk dari supplier yang berstatus Belum Lunas / Tempo.' },
+                inbound: { title: 'Laporan Barang Masuk & Supplier', sub: 'Riwayat seluruh barang masuk beserta nama supplier, harga beli, dan jatuh tempo.' },
+                outbound: { title: 'Laporan Barang Keluar', sub: 'Riwayat pengeluaran barang non-penjualan dari gudang/toko.' },
+                rusak: { title: 'Laporan Barang Rusak / Hilang', sub: 'Catatan barang rusak, kadaluarsa, atau hilang beserta keterangannya.' }
+            };
+            const meta = titleMeta[tab] || titleMeta.per_transaksi;
+            const titleEl = document.getElementById('lapActiveTitle');
+            const subEl = document.getElementById('lapActiveSubtitle');
+            const mobSel = document.getElementById('lapMobileSubSelect');
+            if (titleEl) titleEl.textContent = meta.title;
+            if (subEl) subEl.textContent = meta.sub;
+            if (mobSel) mobSel.value = tab;
+
             renderLaporanData();
         }
 
@@ -3852,6 +3929,9 @@
                 now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
                 frmTanggal.value = now.toISOString().slice(0,16);
             }
+
+            const statusHutang = document.getElementById('frmStatusHutang');
+            if (statusHutang) delete statusHutang.dataset.userChanged;
             
             if(State.transactionType === 'outbound' || State.transactionType === 'rusak') {
                 const sys = document.getElementById('frmStockSystem'); if(sys) sys.textContent = "0";
@@ -4523,7 +4603,6 @@
             document.getElementById('setAppCopy').value = State.settings.copyright || '';
             document.getElementById('setAdminEmail').value = State.settings.admin_email || '';
 
-            // Isi field pengaturan struk kasir
             document.getElementById('setStoreName').value = State.settings.store_name || '';
             document.getElementById('setStorePhone').value = State.settings.store_phone || '';
             document.getElementById('setStoreAddress').value = State.settings.store_address || '';
