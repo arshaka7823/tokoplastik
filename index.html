@@ -9,13 +9,43 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Arpra POS">
-    <meta name="theme-color" content="#2563eb">
+    <meta name="theme-color" content="#062456">
     <link id="appleTouchIcon" rel="apple-touch-icon" href="https://imgcdn.dev/i/YevLfO">
     <link id="pwaManifest" rel="manifest" href="">
     <!-- Dynamic Favicon -->
     <link id="dynamicFavicon" rel="icon" type="image/png" href="https://imgcdn.dev/i/YevLfO">
-    <!-- Tailwind CSS -->
+    <!-- Tailwind CSS + Konfigurasi Pallet Arpra -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        arpra: {
+                            950: '#011023',
+                            900: '#062456',
+                            500: '#5381b2',
+                            400: '#5482b3',
+                            300: '#7a9cc4',
+                            100: '#c1e8ff'
+                        },
+                        blue: {
+                            50: '#edf7ff',
+                            100: '#c1e8ff',
+                            200: '#9fd0f0',
+                            300: '#7a9cc4',
+                            400: '#5482b3',
+                            500: '#5381b2',
+                            600: '#062456',
+                            700: '#041c44',
+                            800: '#021533',
+                            900: '#011023'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- SweetAlert2 -->
@@ -29,21 +59,37 @@
     <script src="https://unpkg.com/html5-qrcode"></script>
 
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-        body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; -webkit-tap-highlight-color: transparent; }
-        .glass-panel { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.2); }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        :root {
+            --arpra-darkest: #011023;
+            --arpra-navy: #062456;
+            --arpra-steel: #5381b2;
+            --arpra-mid: #5482b3;
+            --arpra-soft: #7a9cc4;
+            --arpra-ice: #c1e8ff;
+        }
+        body { font-family: 'Inter', sans-serif; background-color: #eef5fc; -webkit-tap-highlight-color: transparent; }
+        .glass-panel { background: rgba(255, 255, 255, 0.96); backdrop-filter: blur(14px); border: 1px solid rgba(193, 232, 255, 0.45); }
         .hide-scroll::-webkit-scrollbar { display: none; }
         .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
-        .menu-active { background-color: #eff6ff; color: #2563eb; border-right: 4px solid #2563eb; font-weight: 600;}
+        .menu-active { background-color: rgba(193, 232, 255, 0.16); color: #c1e8ff !important; border-right: 4px solid #c1e8ff; font-weight: 700; }
         
-        /* Mobile Bottom Nav styles */
+        /* Mobile Native App Styles */
         @media (max-width: 768px) {
-            .mobile-nav-active { color: #2563eb; }
-            .content-area { padding-bottom: 110px !important; }
+            .mobile-nav-active { color: #062456; }
+            .content-area { padding-bottom: 112px !important; }
         }
+        .pb-safe { padding-bottom: env(safe-area-inset-bottom, 8px); }
         
+        /* Bottom Sheet Animation */
+        @keyframes sheetSlideUp {
+            from { transform: translateY(100%); opacity: 0.6; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .sheet-animate { animation: sheetSlideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+
         /* Loader */
-        .loader { border: 3px solid #f3f3f3; border-top: 3px solid #2563eb; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; }
+        .loader { border: 3px solid #c1e8ff; border-top: 3px solid #062456; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         
         /* Smooth Transitions */
@@ -54,27 +100,27 @@
         /* Custom Scrollbar for dropdowns */
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: #f8fafc; border-radius: 8px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 8px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #7a9cc4; border-radius: 8px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #5381b2; }
 
         /* Scanner Styles */
         #reader { width: 100%; border-radius: 8px; overflow: hidden; border: none !important; }
         #reader video { object-fit: cover; border-radius: 8px; }
         #reader__dashboard_section_csr span { color: white !important; }
-        #reader__dashboard_section_swaplink { color: #3b82f6 !important; text-decoration: none; margin-top: 10px; display: inline-block;}
+        #reader__dashboard_section_swaplink { color: #c1e8ff !important; text-decoration: none; margin-top: 10px; display: inline-block;}
     </style>
 </head>
 <body class="text-slate-800 antialiased overflow-hidden h-[100dvh] flex relative">
 
     <!-- GLOBAL DATA LOADER -->
-    <div id="globalLoader" class="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-white">
-        <div class="loader mb-4" style="width: 40px; height: 40px; border-width: 4px;"></div>
-        <h2 class="text-lg font-bold text-slate-700 animate-pulse">Menghubungkan ke Database...</h2>
-        <p class="text-xs text-slate-500 mt-2">Mohon tunggu sebentar</p>
+    <div id="globalLoader" class="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-gradient-to-b from-[#011023] to-[#062456] text-white">
+        <div class="loader mb-4" style="width: 44px; height: 44px; border-width: 4px; border-color: rgba(193,232,255,0.25); border-top-color: #c1e8ff;"></div>
+        <h2 class="text-lg font-bold text-white animate-pulse">Menghubungkan ke Database...</h2>
+        <p class="text-xs text-[#c1e8ff]/80 mt-2">Mohon tunggu sebentar</p>
     </div>
 
     <!-- SCANNER MODAL (Global) -->
-    <div id="scannerModal" class="hidden fixed inset-0 z-[110] bg-slate-900/90 backdrop-blur-sm flex items-center justify-center p-4 transition-opacity duration-300">
+    <div id="scannerModal" class="hidden fixed inset-0 z-[110] bg-[#011023]/90 backdrop-blur-sm flex items-center justify-center p-4 transition-opacity duration-300">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col transform transition-all scale-100">
             <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
                 <h3 class="font-bold text-slate-800"><i class="fa-solid fa-qrcode mr-2 text-blue-600"></i>Scan Barcode</h3>
@@ -92,7 +138,7 @@
     </div>
 
     <!-- IMPORT MODAL -->
-    <div id="importModal" class="hidden fixed inset-0 z-[120] bg-slate-900/90 backdrop-blur-sm flex items-center justify-center p-4 transition-opacity duration-300">
+    <div id="importModal" class="hidden fixed inset-0 z-[120] bg-[#011023]/90 backdrop-blur-sm flex items-center justify-center p-4 transition-opacity duration-300">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col transform transition-all scale-100">
             <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
                 <h3 class="font-bold text-slate-800" id="importModalTitle"><i class="fa-solid fa-file-import mr-2 text-blue-600"></i>Import Data</h3>
@@ -117,45 +163,110 @@
         </div>
     </div>
 
-    <!-- LOGIN SCREEN -->
-    <div id="loginScreen" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-slate-900 to-slate-800 transition-opacity duration-300">
-        <div class="glass-panel p-8 rounded-2xl shadow-2xl w-[90%] max-w-md transform transition-all">
-            <div class="text-center mb-8">
-                <img id="loginLogo" src="https://imgcdn.dev/i/YevLfO" alt="Logo" class="w-24 h-24 mx-auto mb-4 drop-shadow-lg object-contain bg-white rounded-full p-2">
-                <h1 class="text-2xl font-bold text-slate-800" id="loginTitle">Inventory & POS Login</h1>
-                <p class="text-sm text-slate-500 mt-1">Silakan masuk ke akun Anda</p>
+    <!-- LOGIN & DAFTAR SCREEN -->
+    <div id="loginScreen" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-[#011023] via-[#062456] to-[#5381b2] transition-opacity duration-300 p-4 overflow-y-auto">
+        <div class="glass-panel p-6 sm:p-8 rounded-3xl shadow-2xl w-full max-w-md transform transition-all my-auto">
+            <div class="text-center mb-6">
+                <img id="loginLogo" src="https://imgcdn.dev/i/YevLfO" alt="Logo" class="w-20 h-20 mx-auto mb-3 drop-shadow-lg object-contain bg-white rounded-2xl p-2 border border-[#c1e8ff]">
+                <h1 class="text-2xl font-extrabold text-[#011023]" id="loginTitle">Inventory & POS Login</h1>
+                <p class="text-xs text-slate-500 mt-1" id="authSubtitle">Masuk ke akun Anda atau daftar akun baru</p>
             </div>
-            <div class="space-y-5">
+
+            <!-- Tab Switcher: Masuk / Daftar -->
+            <div class="grid grid-cols-2 bg-[#eef5fc] p-1 rounded-xl mb-6 border border-[#c1e8ff]">
+                <button type="button" id="authTabLogin" onclick="switchAuthTab('login')" class="py-2.5 text-sm font-bold rounded-lg transition-all bg-[#062456] text-white shadow-sm">
+                    <i class="fa-solid fa-right-to-bracket mr-1.5"></i> Masuk
+                </button>
+                <button type="button" id="authTabRegister" onclick="switchAuthTab('register')" class="py-2.5 text-sm font-bold rounded-lg transition-all text-[#062456] hover:bg-white/60">
+                    <i class="fa-solid fa-user-plus mr-1.5"></i> Daftar
+                </button>
+            </div>
+
+            <!-- FORM LOGIN (Enter langsung submit) -->
+            <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-4">
                 <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1">Username</label>
+                    <label class="block text-xs font-bold text-[#011023] mb-1.5">Username</label>
                     <div class="relative">
-                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <i class="fa-solid fa-user text-slate-400"></i>
+                        <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                            <i class="fa-solid fa-user text-[#5381b2]"></i>
                         </div>
-                        <input type="text" id="username" class="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all" placeholder="Masukkan username">
+                        <input type="text" id="username" autocomplete="username" class="w-full pl-10 pr-4 py-3 rounded-xl border border-[#7a9cc4]/60 bg-white focus:ring-2 focus:ring-[#062456] focus:border-[#062456] outline-none transition-all text-sm" placeholder="Masukkan username" required>
                     </div>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1">Password</label>
+                    <label class="block text-xs font-bold text-[#011023] mb-1.5">Password</label>
                     <div class="relative">
-                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <i class="fa-solid fa-lock text-slate-400"></i>
+                        <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                            <i class="fa-solid fa-lock text-[#5381b2]"></i>
                         </div>
-                        <input type="password" id="password" class="w-full pl-10 pr-10 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all" placeholder="••••••••">
-                        <button type="button" onclick="togglePassword()" class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600">
+                        <input type="password" id="password" autocomplete="current-password" class="w-full pl-10 pr-10 py-3 rounded-xl border border-[#7a9cc4]/60 bg-white focus:ring-2 focus:ring-[#062456] focus:border-[#062456] outline-none transition-all text-sm" placeholder="••••••••" required>
+                        <button type="button" onclick="togglePassword('password', 'eyeIcon')" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-[#062456]">
                             <i class="fa-solid fa-eye" id="eyeIcon"></i>
                         </button>
                     </div>
-                    <div class="flex items-center mt-3 ml-1">
-                        <input type="checkbox" id="rememberMe" class="w-4 h-4 text-blue-600 bg-slate-100 border-slate-300 rounded focus:ring-blue-500 cursor-pointer transition-colors">
-                        <label for="rememberMe" class="ml-2 text-sm font-medium text-slate-600 cursor-pointer">Simpan info login</label>
+                    <div class="flex items-center justify-between mt-3 ml-1">
+                        <label class="flex items-center cursor-pointer">
+                            <input type="checkbox" id="rememberMe" class="w-4 h-4 text-[#062456] bg-slate-100 border-[#7a9cc4] rounded focus:ring-[#062456] cursor-pointer">
+                            <span class="ml-2 text-xs font-semibold text-slate-600">Simpan info login</span>
+                        </label>
+                        <span class="text-[11px] text-[#5381b2] font-medium hidden sm:inline">Tekan Enter untuk masuk</span>
                     </div>
                 </div>
-                <button onclick="handleLogin()" id="btnLogin" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-xl shadow-lg shadow-blue-500/30 transition-all flex justify-center items-center gap-2">
+                <button type="submit" id="btnLogin" class="w-full bg-[#062456] hover:bg-[#011023] text-white font-bold py-3.5 rounded-xl shadow-lg shadow-[#062456]/30 transition-all flex justify-center items-center gap-2 mt-2">
                     <span>Masuk</span>
                 </button>
-            </div>
-            <div class="mt-8 text-center text-xs text-slate-400" id="loginCopyright">
+            </form>
+
+            <!-- FORM DAFTAR AKUN BARU -->
+            <form id="registerForm" onsubmit="handleRegister(event)" class="hidden space-y-3.5">
+                <div>
+                    <label class="block text-xs font-bold text-[#011023] mb-1">Nama Lengkap</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                            <i class="fa-solid fa-id-card text-[#5381b2]"></i>
+                        </div>
+                        <input type="text" id="regName" class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[#7a9cc4]/60 bg-white focus:ring-2 focus:ring-[#062456] outline-none text-sm" placeholder="Contoh: Budi Santoso" required>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-[#011023] mb-1">Username</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                            <i class="fa-solid fa-user text-[#5381b2]"></i>
+                        </div>
+                        <input type="text" id="regUsername" class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[#7a9cc4]/60 bg-white focus:ring-2 focus:ring-[#062456] outline-none text-sm" placeholder="Username untuk login" required>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-[#011023] mb-1">Lokasi Toko / Cabang</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                            <i class="fa-solid fa-store text-[#5381b2]"></i>
+                        </div>
+                        <select id="regResto" class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[#7a9cc4]/60 bg-white focus:ring-2 focus:ring-[#062456] outline-none text-sm font-medium text-slate-700" required></select>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-[#011023] mb-1">Password</label>
+                        <div class="relative">
+                            <input type="password" id="regPassword" class="w-full pl-3.5 pr-9 py-2.5 rounded-xl border border-[#7a9cc4]/60 bg-white focus:ring-2 focus:ring-[#062456] outline-none text-sm" placeholder="Min. 4 karakter" required minlength="4">
+                            <button type="button" onclick="togglePassword('regPassword', 'eyeRegIcon')" class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-[#062456]">
+                                <i class="fa-solid fa-eye text-xs" id="eyeRegIcon"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-[#011023] mb-1">Konfirmasi Password</label>
+                        <input type="password" id="regConfirmPassword" class="w-full px-3.5 py-2.5 rounded-xl border border-[#7a9cc4]/60 bg-white focus:ring-2 focus:ring-[#062456] outline-none text-sm" placeholder="Ulangi password" required minlength="4">
+                    </div>
+                </div>
+                <button type="submit" id="btnRegister" class="w-full bg-[#5381b2] hover:bg-[#062456] text-white font-bold py-3.5 rounded-xl shadow-lg shadow-[#5381b2]/30 transition-all flex justify-center items-center gap-2 mt-2">
+                    <i class="fa-solid fa-user-check"></i> <span>Daftar Sekarang</span>
+                </button>
+            </form>
+
+            <div class="mt-6 text-center text-xs text-slate-400" id="loginCopyright">
                 &copy; 2026 Arpra Team
             </div>
         </div>
@@ -163,71 +274,99 @@
 
     <!-- MAIN APP LAYOUT -->
     <div id="mainApp" class="hidden w-full h-full flex flex-col md:flex-row transition-opacity duration-300">
-        <!-- SIDEBAR (Desktop) -->
-        <aside class="hidden md:flex flex-col w-64 bg-white border-r border-slate-200 h-full shadow-sm z-20">
-            <div class="h-16 flex items-center px-6 border-b border-slate-100">
-                <img id="appLogo" src="" alt="Logo" class="h-8 w-8 object-contain mr-3">
-                <span id="appTitle" class="font-bold text-lg text-slate-800 truncate">Inventory POS</span>
+        <!-- SIDEBAR (Desktop - Tema Pallet Arpra Deep Navy) -->
+        <aside class="hidden md:flex flex-col w-64 bg-gradient-to-b from-[#011023] to-[#062456] text-white h-full shadow-xl z-20">
+            <div class="h-16 flex items-center px-6 border-b border-white/10">
+                <img id="appLogo" src="" alt="Logo" class="h-9 w-9 object-contain mr-3 bg-white rounded-xl p-1 shadow-sm">
+                <span id="appTitle" class="font-extrabold text-base text-white truncate tracking-tight">Inventory POS</span>
             </div>
             <div class="flex-1 overflow-y-auto hide-scroll py-4">
                 <nav class="space-y-1 px-3" id="desktopNav"></nav>
             </div>
-            <div class="p-4 border-t border-slate-100">
-                <div class="flex items-center gap-3 mb-4">
-                    <div class="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold">
+            <div class="p-4 border-t border-white/10 bg-[#011023]/40">
+                <div class="flex items-center gap-3 mb-3">
+                    <div class="w-10 h-10 rounded-xl bg-[#5381b2]/30 border border-[#c1e8ff]/30 text-[#c1e8ff] flex items-center justify-center font-bold">
                         <i class="fa-solid fa-user-tie"></i>
                     </div>
                     <div class="overflow-hidden">
-                        <p class="text-sm font-semibold text-slate-800 truncate" id="sideUserName">User</p>
-                        <p class="text-xs text-slate-500 truncate" id="sideUserRole">Role</p>
+                        <p class="text-sm font-bold text-white truncate" id="sideUserName">User</p>
+                        <p class="text-xs text-[#c1e8ff]/80 truncate" id="sideUserRole">Role</p>
                     </div>
                 </div>
-                <button onclick="logout()" class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors flex items-center gap-2">
+                <button onclick="logout()" class="w-full text-left px-4 py-2 text-sm text-rose-300 hover:bg-rose-500/20 hover:text-rose-200 rounded-xl transition-colors flex items-center gap-2 font-medium">
                     <i class="fa-solid fa-right-from-bracket"></i> Keluar
                 </button>
             </div>
         </aside>
 
         <!-- CONTENT AREA -->
-        <main class="flex-1 flex flex-col h-full bg-slate-50 relative overflow-hidden">
-            <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 lg:px-8 shrink-0 shadow-sm z-10">
-                <div class="flex items-center gap-3">
-                    <div class="md:hidden flex items-center gap-2">
-                        <img id="mobileAppLogo" src="" alt="Logo" class="h-8 w-8 object-contain">
+        <main class="flex-1 flex flex-col h-full bg-[#eef5fc] relative overflow-hidden">
+            <!-- APP HEADER (Mobile Native Navy Bar / Desktop Clean Bar) -->
+            <header class="h-16 bg-gradient-to-r from-[#011023] to-[#062456] md:bg-none md:bg-white text-white md:text-slate-800 border-b border-[#5381b2]/30 md:border-slate-200 flex items-center justify-between px-4 lg:px-8 shrink-0 shadow-md md:shadow-sm z-10 rounded-b-2xl md:rounded-none">
+                <div class="flex items-center gap-3 min-w-0">
+                    <div class="md:hidden flex items-center">
+                        <img id="mobileAppLogo" src="" alt="Logo" class="h-9 w-9 object-contain bg-white rounded-xl p-1 shadow-sm border border-[#c1e8ff]/40">
                     </div>
-                    <div>
-                        <h2 class="text-lg font-bold text-slate-800" id="greetingText">Selamat Pagi</h2>
-                        <p class="text-xs text-slate-500" id="headerRestoName">Semua Toko</p>
+                    <div class="min-w-0">
+                        <h2 class="text-sm sm:text-base md:text-lg font-extrabold text-white md:text-[#011023] truncate leading-tight" id="greetingText">Selamat Pagi</h2>
+                        <p class="text-[11px] md:text-xs text-[#c1e8ff] md:text-slate-500 truncate flex items-center gap-1">
+                            <i class="fa-solid fa-location-dot text-[10px]"></i>
+                            <span id="headerRestoName">Semua Toko</span>
+                        </p>
                     </div>
                 </div>
-                <div class="flex items-center gap-2 sm:gap-3">
+                <div class="flex items-center gap-2 sm:gap-3 shrink-0">
                     <!-- Install App Button (Mobile/Tablet/Desktop) -->
-                    <button onclick="promptInstallApp()" id="btnInstallApp" class="bg-blue-50 text-blue-600 hover:bg-blue-100 px-2.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 border border-blue-200" title="Instal Aplikasi ke HP/Tablet">
+                    <button onclick="promptInstallApp()" id="btnInstallApp" class="bg-white/15 md:bg-[#c1e8ff]/50 text-white md:text-[#062456] hover:bg-white/25 md:hover:bg-[#c1e8ff] px-2.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 border border-white/20 md:border-[#7a9cc4]/40" title="Instal Aplikasi ke HP/Tablet">
                         <i class="fa-solid fa-download"></i> <span class="hidden sm:inline">Instal App</span>
                     </button>
                     <!-- Notification Bell for Low Stock -->
-                    <button onclick="navigate('database')" id="headerLowStockBadge" class="hidden relative p-2 text-amber-600 hover:bg-amber-50 rounded-full transition" title="Peringatan Stok Menipis">
+                    <button onclick="navigate('database')" id="headerLowStockBadge" class="hidden relative p-2 text-[#c1e8ff] md:text-amber-600 hover:bg-white/10 md:hover:bg-amber-50 rounded-full transition" title="Peringatan Stok Menipis">
                         <i class="fa-solid fa-bell text-lg animate-bounce"></i>
-                        <span id="headerLowStockCount" class="absolute top-0 right-0 bg-red-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">0</span>
+                        <span id="headerLowStockCount" class="absolute top-0 right-0 bg-rose-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">0</span>
                     </button>
-                    <div class="relative md:hidden">
-                        <button onclick="logout()" class="text-slate-500 hover:text-red-500 p-2">
-                            <i class="fa-solid fa-power-off text-lg"></i>
-                        </button>
-                    </div>
-                    <div class="hidden md:flex items-center bg-slate-100 rounded-full px-3 py-1.5">
-                        <i class="fa-regular fa-clock text-slate-400 mr-2 text-sm"></i>
-                        <span id="realtimeClock" class="text-sm font-medium text-slate-600">00:00:00</span>
+                    <div class="hidden md:flex items-center bg-[#eef5fc] border border-[#c1e8ff] rounded-full px-3.5 py-1.5">
+                        <i class="fa-regular fa-clock text-[#5381b2] mr-2 text-sm"></i>
+                        <span id="realtimeClock" class="text-sm font-bold text-[#062456]">00:00:00</span>
                     </div>
                 </div>
             </header>
-            <div id="viewsContainer" class="flex-1 overflow-y-auto content-area p-4 lg:p-8 hide-scroll scroll-smooth"></div>
+            <div id="viewsContainer" class="flex-1 overflow-y-auto content-area p-3.5 sm:p-4 lg:p-8 hide-scroll scroll-smooth"></div>
         </main>
 
-        <!-- BOTTOM NAV (Mobile Only) -->
-        <nav class="md:hidden fixed bottom-0 left-0 w-full bg-white border-t border-slate-200 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-40 pb-safe">
-            <div class="flex justify-around items-center h-16" id="mobileNav"></div>
+        <!-- MOBILE NATIVE BOTTOM NAVIGATION BAR (5 Slot + Floating POS Button) -->
+        <nav class="md:hidden fixed bottom-0 left-0 w-full bg-white/95 backdrop-blur-md border-t border-[#c1e8ff] shadow-[0_-8px_24px_rgba(1,16,35,0.1)] z-40 pb-safe rounded-t-2xl">
+            <div class="grid grid-cols-5 items-center h-16 px-1 relative" id="mobileNav"></div>
         </nav>
+
+        <!-- MOBILE BOTTOM SHEET MENU DRAWER (Ala Aplikasi Native) -->
+        <div id="mobileMenuSheet" class="hidden md:hidden fixed inset-0 z-50 bg-[#011023]/60 backdrop-blur-xs flex items-end" onclick="closeMobileMenuSheet()">
+            <div class="sheet-animate bg-white w-full rounded-t-3xl p-5 pb-8 shadow-2xl space-y-5 max-h-[85vh] overflow-y-auto" onclick="event.stopPropagation()">
+                <div class="w-12 h-1.5 bg-[#7a9cc4]/40 rounded-full mx-auto"></div>
+                
+                <!-- Kartu Profil User Mobile -->
+                <div class="flex items-center justify-between bg-gradient-to-r from-[#011023] to-[#062456] p-4 rounded-2xl text-white shadow-md">
+                    <div class="flex items-center gap-3 min-w-0">
+                        <div class="w-11 h-11 rounded-xl bg-[#5381b2]/40 border border-[#c1e8ff]/40 text-[#c1e8ff] flex items-center justify-center text-lg shrink-0">
+                            <i class="fa-solid fa-user-tie"></i>
+                        </div>
+                        <div class="min-w-0">
+                            <p class="font-bold text-sm truncate" id="mobileSheetUserName">User</p>
+                            <p class="text-xs text-[#c1e8ff] truncate" id="mobileSheetUserMeta">Role • Toko</p>
+                        </div>
+                    </div>
+                    <button onclick="closeMobileMenuSheet(); logout();" class="px-3 py-2 bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 rounded-xl text-xs font-bold flex items-center gap-1.5 shrink-0 transition">
+                        <i class="fa-solid fa-right-from-bracket"></i> Keluar
+                    </button>
+                </div>
+
+                <!-- Grid Menu Lainnya -->
+                <div>
+                    <h4 class="text-xs font-bold uppercase tracking-wider text-[#5381b2] mb-3 px-1">Menu Inventory & Lainnya</h4>
+                    <div id="mobileSheetGrid" class="grid grid-cols-3 gap-3"></div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- TEMPLATES -->
@@ -1170,7 +1309,7 @@
         let masterDataFiltered = [];
 
         // === Konfigurasi API URL (Cache-Buster untuk Sinkronisasi Real-time HP/Tablet/Laptop) ===
-        const API_URL = "https://script.google.com/macros/s/AKfycbyTi3czvKKB7HmDGw7InR6CL_GM0HhKkrMiyydp9txMmiQCFgyIn9FALNYIKksf14-O/exec";
+        const API_URL = "https://script.google.com/macros/s/AKfycbx8BHcIRGkNafv9VYy-r_blCHn9n1ULd897JkCtsdk2wsgjsr7_Z2yGPxDe0DgMhcya/exec";
 
         // --- PWA & IOS INSTALLABILITY SETUP ---
         let deferredInstallPrompt = null;
@@ -1197,7 +1336,7 @@
                     start_url: window.location.href.split('#')[0],
                     display: "standalone",
                     background_color: "#ffffff",
-                    theme_color: "#2563eb",
+                    theme_color: "#062456",
                     orientation: "portrait-primary",
                     icons: [
                         { src: logo, sizes: "192x192", type: "image/png", purpose: "any maskable" },
@@ -1335,9 +1474,10 @@
             runGas('getAppData').then(data => {
                 syncLocalState(data);
                 populateCategoryDropdowns();
+                populateRegisterRestoDropdown();
                 setupDynamicPwaManifest();
                 
-                State.selectedRestosDash = [...State.restos]; 
+                State.selectedRestosDash = [...State.restos];
                 State.selectedRestosData = [...State.restos];
                 State.selectedRestosScan = [...State.restos];
 
@@ -1568,11 +1708,11 @@
                     setupDropdownBahan('pos');
                 } else if (State.currentView === 'inbound' || State.currentView === 'outbound' || State.currentView === 'rusak') {
                     filterScanHistory();
-                    setupDropdownBahan('frm'); 
+                    setupDropdownBahan('frm');
                 } else if (State.currentView === 'settings') {
-                    renderRestoTable(); 
+                    renderRestoTable();
                     renderSupplierTable();
-                    renderUserTable(); 
+                    renderUserTable();
                     renderMasterTable();
                     renderCategoryTable();
                 } else if (State.currentView === 'database') {
@@ -1599,13 +1739,18 @@
         }
 
         function updateClock() {
-            const now = new Date(); document.getElementById('realtimeClock').textContent = now.toLocaleTimeString('id-ID');
+            const now = new Date();
+            const clockEl = document.getElementById('realtimeClock');
+            if (clockEl) clockEl.textContent = now.toLocaleTimeString('id-ID');
             let greeting = 'Selamat Pagi'; const h = now.getHours();
-            if(h >= 11 && h < 15) greeting = 'Selamat Siang'; else if(h >= 15 && h < 18) greeting = 'Selamat Sore'; else if(h >= 18) greeting = 'Selamat Malam';
-            if(State.user) document.getElementById('greetingText').textContent = `${greeting}, ${State.user.name.split(' ')[0]}`;
+            if (h >= 11 && h < 15) greeting = 'Selamat Siang'; else if (h >= 15 && h < 18) greeting = 'Selamat Sore'; else if (h >= 18) greeting = 'Selamat Malam';
+            if (State.user) {
+                const greetEl = document.getElementById('greetingText');
+                if (greetEl) greetEl.textContent = `${greeting}, ${State.user.name.split(' ')[0]}`;
+            }
         }
 
-        // MENU NAVIGASI DENGAN SUB-MENU LAPORAN DI SIDEBAR KIRI (TERMASUK LAPORAN DISKON)
+        // MENU NAVIGASI DENGAN SUB-MENU LAPORAN & LAPORAN DISKON
         const Menus = [
             { id: 'dashboard', icon: 'fa-chart-pie', label: 'Dashboard', roles: ['Admin', 'Admin Warehouse', 'Manager', 'Store Manager', 'Stocker'] },
             { id: 'penjualan', icon: 'fa-cash-register', label: 'Kasir Penjualan', roles: ['Admin', 'Manager', 'Store Manager', 'Stocker'] },
@@ -1650,17 +1795,99 @@
             document.getElementById('appTitle').textContent = State.settings.app_title || 'Inventory POS';
         }
 
-        function togglePassword() {
-            const i = document.getElementById('password'); const ic = document.getElementById('eyeIcon');
+        function togglePassword(inputId = 'password', iconId = 'eyeIcon') {
+            const i = document.getElementById(inputId); const ic = document.getElementById(iconId);
+            if (!i || !ic) return;
             if (i.type === 'password') { i.type = 'text'; ic.classList.replace('fa-eye', 'fa-eye-slash'); } else { i.type = 'password'; ic.classList.replace('fa-eye-slash', 'fa-eye'); }
         }
 
-        function handleLogin() {
-            const u = document.getElementById('username').value; const p = document.getElementById('password').value;
+        function populateRegisterRestoDropdown() {
+            const regResto = document.getElementById('regResto');
+            if (!regResto) return;
+            const list = (State.restos && State.restos.length > 0) ? State.restos : ['Toko Pusat'];
+            regResto.innerHTML = list.map(r => `<option value="${r}">${r}</option>`).join('');
+        }
+
+        function switchAuthTab(mode) {
+            const loginForm = document.getElementById('loginForm');
+            const regForm = document.getElementById('registerForm');
+            const tabLogin = document.getElementById('authTabLogin');
+            const tabReg = document.getElementById('authTabRegister');
+            const subtitle = document.getElementById('authSubtitle');
+
+            if (mode === 'register') {
+                populateRegisterRestoDropdown();
+                loginForm.classList.add('hidden');
+                regForm.classList.remove('hidden');
+                tabReg.className = 'py-2.5 text-sm font-bold rounded-lg transition-all bg-[#062456] text-white shadow-sm';
+                tabLogin.className = 'py-2.5 text-sm font-bold rounded-lg transition-all text-[#062456] hover:bg-white/60';
+                if (subtitle) subtitle.textContent = 'Buat akun kasir/stocker baru untuk mulai menggunakan aplikasi';
+                setTimeout(() => document.getElementById('regName')?.focus(), 50);
+            } else {
+                regForm.classList.add('hidden');
+                loginForm.classList.remove('hidden');
+                tabLogin.className = 'py-2.5 text-sm font-bold rounded-lg transition-all bg-[#062456] text-white shadow-sm';
+                tabReg.className = 'py-2.5 text-sm font-bold rounded-lg transition-all text-[#062456] hover:bg-white/60';
+                if (subtitle) subtitle.textContent = 'Masuk ke akun Anda atau daftar akun baru';
+                setTimeout(() => document.getElementById('username')?.focus(), 50);
+            }
+        }
+
+        function handleRegister(e) {
+            if (e) e.preventDefault();
+            const name = document.getElementById('regName').value.trim();
+            const username = document.getElementById('regUsername').value.trim();
+            const resto = document.getElementById('regResto').value;
+            const pass = document.getElementById('regPassword').value;
+            const confirmPass = document.getElementById('regConfirmPassword').value;
+
+            if (!name || !username || !pass) {
+                return Swal.fire({ icon: 'warning', title: 'Data Belum Lengkap', text: 'Mohon isi Nama, Username, dan Password.' });
+            }
+            if (pass.length < 4) {
+                return Swal.fire({ icon: 'warning', title: 'Password Terlalu Pendek', text: 'Password minimal 4 karakter.' });
+            }
+            if (pass !== confirmPass) {
+                return Swal.fire({ icon: 'error', title: 'Password Tidak Cocok', text: 'Konfirmasi password harus sama dengan password.' });
+            }
+
+            const btn = document.getElementById('btnRegister');
+            const origHtml = btn.innerHTML;
+            btn.innerHTML = `<div class="loader" style="width: 20px; height: 20px; border-width: 3px; border-color: rgba(255,255,255,0.3); border-top-color: #fff;"></div> <span>Mendaftar...</span>`;
+            btn.disabled = true;
+
+            runGas('registerUser', { name, username, pass, resto }).then(res => {
+                btn.innerHTML = origHtml;
+                btn.disabled = false;
+                if (res && res.success) {
+                    if (res.appData) syncLocalState(res.appData, false);
+                    document.getElementById('registerForm').reset();
+                    document.getElementById('username').value = username;
+                    document.getElementById('password').value = pass;
+                    switchAuthTab('login');
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Pendaftaran Berhasil!',
+                        text: `Akun ${username} berhasil dibuat. Silakan klik Masuk atau tekan Enter.`,
+                        confirmButtonColor: '#062456'
+                    });
+                } else {
+                    Swal.fire({ icon: 'error', title: 'Gagal Mendaftar', text: (res && res.message) || 'Username mungkin sudah terdaftar.' });
+                }
+            }).catch(err => {
+                btn.innerHTML = origHtml;
+                btn.disabled = false;
+                Swal.fire({ icon: 'error', title: 'Error Koneksi', text: err.message || 'Gagal menghubungi server pendaftaran.' });
+            });
+        }
+
+        function handleLogin(e) {
+            if (e) e.preventDefault();
+            const u = document.getElementById('username').value.trim(); const p = document.getElementById('password').value;
             const isRemembered = document.getElementById('rememberMe').checked;
 
             if(!u || !p) return Swal.fire({icon: 'warning', title: 'Oops...', text: 'Username dan Password wajib diisi!'});
-            const btn = document.getElementById('btnLogin'); btn.innerHTML = `<div class="loader" style="width: 20px; height: 20px; border-width: 3px;"></div>`; btn.disabled = true;
+            const btn = document.getElementById('btnLogin'); btn.innerHTML = `<div class="loader" style="width: 20px; height: 20px; border-width: 3px; border-color: rgba(255,255,255,0.3); border-top-color: #fff;"></div>`; btn.disabled = true;
 
             runGas('loginUser', u, p).then(res => {
                 btn.innerHTML = `<span>Masuk</span>`; btn.disabled = false;
@@ -1680,6 +1907,11 @@
                     document.getElementById('sideUserName').textContent = res.user.name;
                     document.getElementById('sideUserRole').textContent = res.user.role;
                     document.getElementById('headerRestoName').textContent = res.user.resto;
+                    const mName = document.getElementById('mobileSheetUserName');
+                    const mMeta = document.getElementById('mobileSheetUserMeta');
+                    if (mName) mName.textContent = res.user.name;
+                    if (mMeta) mMeta.textContent = `${res.user.role} • ${res.user.resto}`;
+
                     document.getElementById('loginScreen').style.opacity = '0';
                     setTimeout(() => {
                         document.getElementById('loginScreen').classList.add('hidden');
@@ -1711,37 +1943,97 @@
         function renderNavigation() {
             const dNav = document.getElementById('desktopNav');
             const mNav = document.getElementById('mobileNav');
+            const mSheetGrid = document.getElementById('mobileSheetGrid');
             if (!dNav || !mNav || !State.user) return;
             dNav.innerHTML = '';
             mNav.innerHTML = '';
 
-            Menus.filter(m => m.roles.includes(State.user.role)).forEach(menu => {
+            const allowedMenus = Menus.filter(m => m.roles.includes(State.user.role));
+
+            // 1. Render Sidebar Desktop (Tema Pallet Arpra Dark Navy)
+            allowedMenus.forEach(menu => {
                 if (menu.subMenus && Array.isArray(menu.subMenus)) {
                     const isParentActive = State.currentView === menu.id;
                     const isOpen = State.lapMenuOpen !== false;
                     const subItemsHtml = menu.subMenus.map(sub => {
                         const isSubActive = isParentActive && State.lapTab === sub.id;
-                        return `<button onclick="openLaporanSub('${sub.id}')" class="w-full text-left pl-10 pr-3 py-2 rounded-lg text-xs transition-all flex items-center gap-2 ${isSubActive ? 'bg-blue-600 text-white font-bold shadow-sm' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-800'}"><span class="w-1.5 h-1.5 rounded-full ${isSubActive ? 'bg-white' : 'bg-slate-300'}"></span><span class="truncate">${sub.label}</span></button>`;
+                        return `<button onclick="openLaporanSub('${sub.id}')" class="w-full text-left pl-9 pr-3 py-2 rounded-lg text-xs transition-all flex items-center gap-2 ${isSubActive ? 'bg-[#5381b2] text-white font-bold shadow-sm' : 'text-[#c1e8ff]/75 hover:bg-white/10 hover:text-white'}"><span class="w-1.5 h-1.5 rounded-full ${isSubActive ? 'bg-[#c1e8ff]' : 'bg-[#7a9cc4]/60'}"></span><span class="truncate">${sub.label}</span></button>`;
                     }).join('');
 
                     dNav.innerHTML += `
                         <div class="mb-1">
-                            <button onclick="toggleLaporanMenu()" class="w-full text-left px-4 py-3 rounded-xl text-sm font-medium transition-all flex items-center justify-between ${isParentActive ? 'bg-blue-50 text-blue-600 font-bold' : 'text-slate-500 hover:bg-slate-100'}">
+                            <button onclick="toggleLaporanMenu()" class="w-full text-left px-4 py-3 rounded-xl text-sm font-medium transition-all flex items-center justify-between ${isParentActive ? 'bg-[#5381b2]/30 text-[#c1e8ff] font-bold' : 'text-white/80 hover:bg-white/10 hover:text-white'}">
                                 <span class="flex items-center gap-3"><i class="fa-solid ${menu.icon} w-5 text-center"></i> <span>${menu.label}</span></span>
                                 <i class="fa-solid fa-chevron-down text-xs transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}"></i>
                             </button>
-                            <div class="${isOpen ? 'block' : 'hidden'} mt-1 space-y-1 border-l-2 border-blue-100 ml-5 pl-1">
+                            <div class="${isOpen ? 'block' : 'hidden'} mt-1 space-y-1 border-l-2 border-[#5381b2]/50 ml-5 pl-1">
                                 ${subItemsHtml}
                             </div>
                         </div>
                     `;
-                    mNav.innerHTML += `<button onclick="navigate('${menu.id}')" class="flex flex-col items-center justify-center w-full h-full text-[10px] gap-1 transition-colors ${isParentActive ? 'mobile-nav-active font-bold' : 'text-slate-400'}"><i class="fa-solid ${menu.icon} text-lg mb-0.5"></i> <span>${menu.label.split(' ')[0]}</span></button>`;
                 } else {
-                    dNav.innerHTML += `<button onclick="navigate('${menu.id}')" class="w-full text-left px-4 py-3 rounded-xl mb-1 text-sm font-medium transition-all flex items-center gap-3 ${State.currentView === menu.id ? 'menu-active shadow-sm' : 'text-slate-500 hover:bg-slate-100'}"><i class="fa-solid ${menu.icon} w-5 text-center"></i> <span>${menu.label}</span></button>`;
-                    mNav.innerHTML += `<button onclick="navigate('${menu.id}')" class="flex flex-col items-center justify-center w-full h-full text-[10px] gap-1 transition-colors ${State.currentView === menu.id ? 'mobile-nav-active font-bold' : 'text-slate-400'}"><i class="fa-solid ${menu.icon} text-lg mb-0.5"></i> <span>${menu.label.split(' ')[0]}</span></button>`;
+                    dNav.innerHTML += `<button onclick="navigate('${menu.id}')" class="w-full text-left px-4 py-3 rounded-xl mb-1 text-sm font-medium transition-all flex items-center gap-3 ${State.currentView === menu.id ? 'menu-active shadow-sm' : 'text-white/80 hover:bg-white/10 hover:text-white'}"><i class="fa-solid ${menu.icon} w-5 text-center"></i> <span>${menu.label}</span></button>`;
                 }
             });
+
+            // 2. Render Mobile Bottom Navigation (5 Slot Native App + Floating Kasir Button)
+            const hasPos = allowedMenus.some(m => m.id === 'penjualan');
+            const extraMenuIds = ['inbound', 'outbound', 'rusak', 'settings'];
+            const isExtraActive = extraMenuIds.includes(State.currentView);
+
+            mNav.innerHTML = `
+                <button onclick="navigate('dashboard')" class="flex flex-col items-center justify-center h-full gap-1 transition-all ${State.currentView === 'dashboard' ? 'text-[#062456] font-bold' : 'text-[#7a9cc4]'}">
+                    <i class="fa-solid fa-house text-lg"></i>
+                    <span class="text-[10px]">Home</span>
+                </button>
+                <button onclick="navigate('laporan')" class="flex flex-col items-center justify-center h-full gap-1 transition-all ${State.currentView === 'laporan' ? 'text-[#062456] font-bold' : 'text-[#7a9cc4]'}">
+                    <i class="fa-solid fa-chart-simple text-lg"></i>
+                    <span class="text-[10px]">Laporan</span>
+                </button>
+                <div class="flex flex-col items-center justify-center -mt-6">
+                    <button onclick="navigate('${hasPos ? 'penjualan' : 'outbound'}')" class="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#062456] to-[#5381b2] text-white shadow-lg shadow-[#062456]/40 border-4 border-[#eef5fc] flex items-center justify-center active:scale-95 transition-transform">
+                        <i class="fa-solid ${hasPos ? 'fa-cash-register' : 'fa-truck-fast'} text-xl"></i>
+                    </button>
+                    <span class="text-[10px] font-bold text-[#062456] mt-0.5">${hasPos ? 'Kasir' : 'Keluar'}</span>
+                </div>
+                <button onclick="navigate('database')" class="flex flex-col items-center justify-center h-full gap-1 transition-all ${State.currentView === 'database' ? 'text-[#062456] font-bold' : 'text-[#7a9cc4]'}">
+                    <i class="fa-solid fa-boxes-stacked text-lg"></i>
+                    <span class="text-[10px]">Stok</span>
+                </button>
+                <button onclick="openMobileMenuSheet()" class="flex flex-col items-center justify-center h-full gap-1 transition-all ${isExtraActive ? 'text-[#062456] font-bold' : 'text-[#7a9cc4]'}">
+                    <i class="fa-solid fa-grip text-lg"></i>
+                    <span class="text-[10px]">Menu</span>
+                </button>
+            `;
+
+            // 3. Render Isi Mobile Bottom Sheet Drawer
+            if (mSheetGrid) {
+                const sheetMenus = allowedMenus.filter(m => extraMenuIds.includes(m.id));
+                const colorMap = {
+                    inbound: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+                    outbound: 'bg-rose-50 text-rose-700 border-rose-200',
+                    rusak: 'bg-amber-50 text-amber-700 border-amber-200',
+                    settings: 'bg-[#edf7ff] text-[#062456] border-[#c1e8ff]'
+                };
+                mSheetGrid.innerHTML = sheetMenus.map(m => `
+                    <button onclick="closeMobileMenuSheet(); navigate('${m.id}');" class="flex flex-col items-center justify-center gap-2 p-3.5 rounded-2xl border ${State.currentView === m.id ? 'bg-[#062456] text-white border-[#062456] shadow-md' : (colorMap[m.id] || 'bg-slate-50 text-slate-700 border-slate-200')} active:scale-95 transition">
+                        <i class="fa-solid ${m.icon} text-xl"></i>
+                        <span class="text-[11px] font-bold text-center leading-tight">${m.label}</span>
+                    </button>
+                `).join('');
+            }
+
             if(State.user.role !== 'Admin') document.querySelectorAll('.admin-only-element').forEach(el => el.style.display = 'none');
+        }
+
+        function openMobileMenuSheet() {
+            const sheet = document.getElementById('mobileMenuSheet');
+            if (sheet) sheet.classList.remove('hidden');
+        }
+
+        function closeMobileMenuSheet() {
+            const sheet = document.getElementById('mobileMenuSheet');
+            if (sheet) sheet.classList.add('hidden');
         }
 
         function toggleLaporanMenu() {
