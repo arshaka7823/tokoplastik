@@ -297,7 +297,7 @@
                 <!-- 3. Total Omzet Penjualan -->
                 <div class="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl p-5 text-white shadow-lg shadow-blue-500/20 relative overflow-hidden transition-all hover:-translate-y-1">
                     <div class="absolute -right-4 -top-4 opacity-20"><i class="fa-solid fa-cash-register text-7xl"></i></div>
-                    <p class="text-blue-100 text-xs font-semibold uppercase tracking-wider mb-1">Total Omzet Penjualan</p>
+                    <p class="text-blue-100 text-xs font-semibold uppercase tracking-wider mb-1">Total Omzet Bersih</p>
                     <div class="min-h-[3.5rem] flex flex-col justify-center">
                         <h3 class="text-2xl font-bold mb-0.5 truncate" id="dashTotalOmzet">Rp 0</h3>
                         <p class="text-xs text-blue-100" id="dashTotalTrxSales">0 Transaksi Terjual</p>
@@ -376,13 +376,13 @@
         </div>
     </template>
 
-    <!-- 2. PENJUALAN (KASIR BARCODE & MANUAL) -->
+    <!-- 2. PENJUALAN (KASIR BARCODE & MANUAL + SISTEM DISKON % / RUPIAH) -->
     <template id="tpl-penjualan">
         <div class="max-w-5xl mx-auto space-y-6 animate-fade-in pb-10 md:pb-4">
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                 <div>
                     <h2 class="text-xl font-bold text-slate-800"><i class="fa-solid fa-cash-register text-emerald-600 mr-2"></i>Kasir Penjualan (POS)</h2>
-                    <p class="text-xs text-slate-500">Scan barcode atau pilih barang secara manual. Stok otomatis berkurang saat dibayar.</p>
+                    <p class="text-xs text-slate-500">Scan barcode atau pilih barang secara manual. Mendukung diskon Persentase (%) & Nominal (Rp).</p>
                 </div>
                 <div class="flex items-center gap-2 w-full sm:w-auto">
                     <label class="text-xs font-bold text-slate-600">Lokasi:</label>
@@ -453,14 +453,14 @@
                     </button>
                 </div>
 
-                <!-- Panel Keranjang & Pembayaran (Kanan) -->
+                <!-- Panel Keranjang, Diskon & Pembayaran (Kanan) -->
                 <div class="lg:col-span-7 bg-white rounded-2xl shadow-sm border border-slate-100 flex flex-col overflow-hidden">
                     <div class="p-4 border-b border-slate-100 bg-slate-50/70 flex justify-between items-center">
                         <h3 class="font-bold text-slate-800 text-sm"><i class="fa-solid fa-basket-shopping text-emerald-600 mr-2"></i>Keranjang Belanja</h3>
                         <button type="button" onclick="clearPosCart()" class="text-xs text-red-500 hover:underline font-semibold">Kosongkan</button>
                     </div>
 
-                    <div class="overflow-x-auto flex-1 min-h-[220px]">
+                    <div class="overflow-x-auto flex-1 min-h-[200px]">
                         <table class="w-full text-left text-sm whitespace-nowrap">
                             <thead class="bg-slate-50 text-slate-500 border-b border-slate-100 text-xs">
                                 <tr>
@@ -477,13 +477,53 @@
                         </table>
                     </div>
 
-                    <div class="p-5 bg-slate-50 border-t border-slate-200 space-y-4 mt-auto">
-                        <div class="flex justify-between items-center">
-                            <div>
-                                <span class="text-xs text-slate-500 block">Total Item: <b id="posCartCount" class="text-slate-800">0</b></span>
-                                <span class="text-sm font-bold text-slate-700">Total Pembayaran</span>
+                    <!-- PANEL SISTEM DISKON (% & RUPIAH) -->
+                    <div class="px-5 py-3.5 bg-amber-50/70 border-t border-amber-200/80 space-y-2.5">
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                            <span class="text-xs font-bold text-amber-900 flex items-center gap-1.5">
+                                <i class="fa-solid fa-tags text-amber-600"></i> Diskon Transaksi
+                            </span>
+                            <div class="inline-flex bg-white p-0.5 rounded-lg border border-amber-300 shadow-xs">
+                                <button type="button" id="btnPosDiscPercent" onclick="setPosDiscountType('percent')" class="px-3 py-1 text-[11px] font-bold rounded-md transition bg-amber-600 text-white">
+                                    Persen (%)
+                                </button>
+                                <button type="button" id="btnPosDiscNominal" onclick="setPosDiscountType('nominal')" class="px-3 py-1 text-[11px] font-bold rounded-md transition text-slate-600 hover:text-amber-700">
+                                    Rupiah (Rp)
+                                </button>
                             </div>
-                            <div class="text-2xl font-extrabold text-emerald-600" id="posGrandTotal">Rp 0</div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <div class="relative flex-1">
+                                <span id="posDiscPrefix" class="hidden absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-500">Rp</span>
+                                <input type="number" id="posDiscountInput" min="0" step="any" oninput="handlePosDiscountInput()" placeholder="0 - 100" class="w-full px-3 pr-8 py-2 bg-white border border-amber-300 rounded-lg text-sm font-bold text-slate-800 focus:ring-2 focus:ring-amber-500 outline-none">
+                                <span id="posDiscSuffix" class="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-500">%</span>
+                            </div>
+                            <button type="button" onclick="resetPosDiscount()" title="Hapus Diskon" class="px-3 py-2 bg-white border border-amber-200 hover:bg-rose-50 hover:text-rose-600 text-slate-500 rounded-lg text-xs font-bold transition">
+                                <i class="fa-solid fa-xmark"></i>
+                            </button>
+                        </div>
+                        <!-- Preset Cepat Diskon -->
+                        <div id="posDiscountPresets" class="flex flex-wrap gap-1.5"></div>
+                    </div>
+
+                    <div class="p-5 bg-slate-50 border-t border-slate-200 space-y-4 mt-auto">
+                        <!-- Ringkasan Subtotal, Diskon, dan Total Akhir -->
+                        <div class="space-y-1.5 text-sm">
+                            <div class="flex justify-between text-xs text-slate-500">
+                                <span>Subtotal (<b id="posCartCount" class="text-slate-700">0</b> Item)</span>
+                                <span id="posSubtotalDisplay" class="font-semibold text-slate-700">Rp 0</span>
+                            </div>
+                            <div class="flex justify-between text-xs text-amber-700 font-semibold">
+                                <span class="flex items-center gap-1.5">
+                                    <span>Potongan Diskon</span>
+                                    <span id="posDiscountBadge" class="hidden px-1.5 py-0.5 rounded bg-amber-200/80 text-amber-900 text-[10px] font-bold"></span>
+                                </span>
+                                <span id="posDiscountDisplay">- Rp 0</span>
+                            </div>
+                            <div class="flex justify-between items-center pt-2 border-t border-slate-200">
+                                <span class="text-sm font-bold text-slate-800">Total Pembayaran</span>
+                                <div class="text-2xl font-extrabold text-emerald-600" id="posGrandTotal">Rp 0</div>
+                            </div>
                         </div>
 
                         <!-- Pilihan Metode Pembayaran: Tunai, QRIS, Tempo -->
@@ -561,7 +601,7 @@
                 <div class="p-5 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                     <div>
                         <h3 class="font-bold text-slate-800">Riwayat Transaksi Penjualan</h3>
-                        <p class="text-xs text-slate-500">Daftar barang yang telah terjual.</p>
+                        <p class="text-xs text-slate-500">Daftar barang yang telah terjual beserta potongan diskonnya.</p>
                     </div>
                     <div class="flex gap-2">
                         <button onclick="refreshGlobalData(this)" class="bg-blue-50 text-blue-600 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-blue-100 transition flex items-center"><i class="fa-solid fa-rotate-right mr-1.5"></i> Refresh</button>
@@ -584,8 +624,9 @@
                                 <th class="px-5 py-3 font-medium">No. Nota & Waktu</th>
                                 <th class="px-5 py-3 font-medium">Barang</th>
                                 <th class="px-5 py-3 font-medium">Qty</th>
+                                <th class="px-5 py-3 font-medium">Diskon</th>
                                 <th class="px-5 py-3 font-medium">Metode</th>
-                                <th class="px-5 py-3 font-medium">Total Omzet</th>
+                                <th class="px-5 py-3 font-medium">Total Bersih</th>
                                 <th class="px-5 py-3 font-medium">Kasir / Toko</th>
                                 <th class="px-5 py-3 font-medium text-center">Aksi</th>
                             </tr>
@@ -772,7 +813,7 @@
                     <div>
                         <span class="text-[11px] font-bold uppercase tracking-wider text-blue-600 bg-blue-50 px-2.5 py-0.5 rounded-md">Laporan Transaksi</span>
                         <h2 class="text-xl font-bold text-slate-800 mt-1" id="lapActiveTitle">Laporan Penjualan Per Transaksi</h2>
-                        <p class="text-xs text-slate-500" id="lapActiveSubtitle">Rekapitulasi transaksi penjualan, piutang pelanggan, hutang supplier, dan mutasi stok.</p>
+                        <p class="text-xs text-slate-500" id="lapActiveSubtitle">Rekapitulasi transaksi penjualan, diskon, piutang pelanggan, hutang supplier, dan mutasi stok.</p>
                     </div>
                     <div class="flex gap-2 flex-wrap">
                         <button onclick="refreshGlobalData(this)" class="bg-blue-50 text-blue-600 px-3 py-2 rounded-lg text-xs font-bold hover:bg-blue-100 transition flex items-center"><i class="fa-solid fa-rotate-right mr-1.5"></i> Refresh</button>
@@ -787,6 +828,7 @@
                     <select id="lapMobileSubSelect" onchange="openLaporanSub(this.value)" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm font-bold text-blue-700 bg-blue-50/50 outline-none focus:ring-2 focus:ring-blue-500">
                         <option value="per_transaksi">Penjualan Per Transaksi (Nota)</option>
                         <option value="all_sales">Penjualan Per Item</option>
+                        <option value="diskon">Laporan Diskon (% & Rp)</option>
                         <option value="tunai">Penjualan Cash / Tunai</option>
                         <option value="qris">Penjualan QRIS</option>
                         <option value="tempo">Piutang Pelanggan (Tempo)</option>
@@ -1119,14 +1161,16 @@
             // Dashboard Recent History Pagination State
             dashRecentData: [], dashRecentPage: 1,
 
-            // POS Cart State
-            posCart: []
+            // POS Cart & Discount State
+            posCart: [],
+            posDiscountType: 'percent', // 'percent' atau 'nominal'
+            posDiscountValue: 0
         };
 
         let masterDataFiltered = [];
 
         // === Konfigurasi API URL (Cache-Buster untuk Sinkronisasi Real-time HP/Tablet/Laptop) ===
-        const API_URL = "https://script.google.com/macros/s/AKfycbxERyE4ZknaqUHb9hVZ6i9PIM0cR08KlCH1wPa3xImHN4aDXwfITeBgNSOjG5vB81ow/exec";
+        const API_URL = "https://script.google.com/macros/s/AKfycbyTi3czvKKB7HmDGw7InR6CL_GM0HhKkrMiyydp9txMmiQCFgyIn9FALNYIKksf14-O/exec";
 
         // --- PWA & IOS INSTALLABILITY SETUP ---
         let deferredInstallPrompt = null;
@@ -1242,7 +1286,7 @@
         }
 
         function formatRupiah(angka) {
-            const num = parseFloat(angka) || 0;
+            const num = Math.round(parseFloat(angka) || 0);
             return 'Rp ' + num.toLocaleString('id-ID');
         }
 
@@ -1561,7 +1605,7 @@
             if(State.user) document.getElementById('greetingText').textContent = `${greeting}, ${State.user.name.split(' ')[0]}`;
         }
 
-        // MENU NAVIGASI DENGAN SUB-MENU LAPORAN DI SIDEBAR KIRI
+        // MENU NAVIGASI DENGAN SUB-MENU LAPORAN DI SIDEBAR KIRI (TERMASUK LAPORAN DISKON)
         const Menus = [
             { id: 'dashboard', icon: 'fa-chart-pie', label: 'Dashboard', roles: ['Admin', 'Admin Warehouse', 'Manager', 'Store Manager', 'Stocker'] },
             { id: 'penjualan', icon: 'fa-cash-register', label: 'Kasir Penjualan', roles: ['Admin', 'Manager', 'Store Manager', 'Stocker'] },
@@ -1573,6 +1617,7 @@
                 subMenus: [
                     { id: 'per_transaksi', label: 'Penjualan Per Transaksi' },
                     { id: 'all_sales', label: 'Penjualan Per Item' },
+                    { id: 'diskon', label: 'Laporan Diskon (% & Rp)' },
                     { id: 'tunai', label: 'Penjualan Cash / Tunai' },
                     { id: 'qris', label: 'Penjualan QRIS' },
                     { id: 'tempo', label: 'Piutang Pelanggan (Tempo)' },
@@ -1851,8 +1896,10 @@
                 fSales.forEach(trx => outStats[trx.Satuan] = (outStats[trx.Satuan]||0) + Math.abs(parseFloat(trx.Qty) || 0));
 
                 let totalOmzet = 0;
+                let totalDiskon = 0;
                 fSales.forEach(s => {
-                    totalOmzet += parseFloat(s.TotalHarga) || (Math.abs(parseFloat(s.Qty)||0) * (parseFloat(s.HargaSatuan)||0));
+                    totalOmzet += parseCleanNumber(s.TotalHarga, 0);
+                    totalDiskon += parseCleanNumber(s.NominalDiskon, 0);
                 });
 
                 const lowStockList = getLowStockItems(selRestos);
@@ -1881,7 +1928,9 @@
                 document.getElementById('dashTotalInUnits').innerHTML = formatHtml(inStats);
                 document.getElementById('dashTotalOutUnits').innerHTML = formatHtml(outStats);
                 document.getElementById('dashTotalOmzet').textContent = formatRupiah(totalOmzet);
-                document.getElementById('dashTotalTrxSales').textContent = `${fSales.length} Item Terjual`;
+                document.getElementById('dashTotalTrxSales').textContent = totalDiskon > 0
+                    ? `${fSales.length} Item | Diskon: ${formatRupiah(totalDiskon)}`
+                    : `${fSales.length} Item Terjual`;
                 document.getElementById('dashLowStockCardCount').innerHTML = `${lowStockList.length} <span class="text-sm font-normal">Item</span>`;
                 document.getElementById('dashTotalRusak').innerHTML = `${totalRusakQty} <span class="text-sm font-normal text-slate-300">Item</span>`;
                 document.getElementById('dashTotalSku').textContent = `Total Stok Aktif: ${fStock.length} SKU`;
@@ -2144,7 +2193,7 @@
             } catch (e) {}
         }
 
-        // --- KASIR PENJUALAN (POS) LOGIC ---
+        // --- KASIR PENJUALAN (POS) & SISTEM DISKON (% / RUPIAH) ---
         function loadPenjualanView(container) {
             container.appendChild(document.getElementById('tpl-penjualan').content.cloneNode(true));
             
@@ -2158,11 +2207,151 @@
             }
 
             State.posCart = [];
+            State.posDiscountType = 'percent';
+            State.posDiscountValue = 0;
+
+            setPosDiscountType('percent');
             selectPosPaymentMethod('Tunai');
             updateTempoDueDate();
             setupDropdownBahan('pos');
             renderPosCart();
             filterPosHistory();
+        }
+
+        function setPosDiscountType(type) {
+            State.posDiscountType = type;
+            State.posDiscountValue = 0;
+
+            const btnPercent = document.getElementById('btnPosDiscPercent');
+            const btnNominal = document.getElementById('btnPosDiscNominal');
+            const prefix = document.getElementById('posDiscPrefix');
+            const suffix = document.getElementById('posDiscSuffix');
+            const input = document.getElementById('posDiscountInput');
+
+            if (btnPercent && btnNominal && prefix && suffix && input) {
+                if (type === 'percent') {
+                    btnPercent.className = 'px-3 py-1 text-[11px] font-bold rounded-md transition bg-amber-600 text-white';
+                    btnNominal.className = 'px-3 py-1 text-[11px] font-bold rounded-md transition text-slate-600 hover:text-amber-700';
+                    prefix.classList.add('hidden');
+                    suffix.classList.remove('hidden');
+                    input.classList.remove('pl-9');
+                    input.classList.add('pr-8');
+                    input.placeholder = '0 - 100';
+                } else {
+                    btnNominal.className = 'px-3 py-1 text-[11px] font-bold rounded-md transition bg-amber-600 text-white';
+                    btnPercent.className = 'px-3 py-1 text-[11px] font-bold rounded-md transition text-slate-600 hover:text-amber-700';
+                    prefix.classList.remove('hidden');
+                    suffix.classList.add('hidden');
+                    input.classList.add('pl-9');
+                    input.classList.remove('pr-8');
+                    input.placeholder = 'Contoh: 10000';
+                }
+                input.value = '';
+            }
+
+            renderPosDiscountPresets();
+            renderPosCart();
+        }
+
+        function renderPosDiscountPresets() {
+            const container = document.getElementById('posDiscountPresets');
+            if (!container) return;
+
+            const presets = State.posDiscountType === 'percent'
+                ? [
+                    { label: '5%', val: 5 },
+                    { label: '10%', val: 10 },
+                    { label: '15%', val: 15 },
+                    { label: '20%', val: 20 },
+                    { label: '50%', val: 50 }
+                  ]
+                : [
+                    { label: 'Rp 5.000', val: 5000 },
+                    { label: 'Rp 10.000', val: 10000 },
+                    { label: 'Rp 20.000', val: 20000 },
+                    { label: 'Rp 50.000', val: 50000 }
+                  ];
+
+            container.innerHTML = presets.map(p => `
+                <button type="button" onclick="applyPosPresetDiscount(${p.val})" class="px-2.5 py-1 text-[11px] font-bold bg-white hover:bg-amber-600 hover:text-white text-amber-800 border border-amber-200 rounded-md transition">
+                    ${p.label}
+                </button>
+            `).join('');
+        }
+
+        function applyPosPresetDiscount(val) {
+            const input = document.getElementById('posDiscountInput');
+            if (input) {
+                input.value = val;
+                handlePosDiscountInput();
+            }
+        }
+
+        function handlePosDiscountInput() {
+            const input = document.getElementById('posDiscountInput');
+            if (!input) return;
+            let val = parseFloat(input.value);
+            if (isNaN(val) || val < 0) val = 0;
+
+            if (State.posDiscountType === 'percent' && val > 100) {
+                val = 100;
+                input.value = 100;
+                Swal.fire({ icon: 'info', title: 'Diskon persentase maksimal 100%', toast: true, position: 'top-end', showConfirmButton: false, timer: 1800 });
+            }
+            State.posDiscountValue = val;
+            updatePosTotalsUI();
+        }
+
+        function resetPosDiscount() {
+            State.posDiscountValue = 0;
+            const input = document.getElementById('posDiscountInput');
+            if (input) input.value = '';
+            updatePosTotalsUI();
+        }
+
+        function getPosTotals() {
+            const subtotal = State.posCart.reduce((acc, cur) => acc + cur.totalHarga, 0);
+            let discountAmount = 0;
+            let discountType = 'none';
+            let discountInput = 0;
+
+            if (subtotal > 0 && State.posDiscountValue > 0) {
+                if (State.posDiscountType === 'percent') {
+                    discountType = 'percent';
+                    discountInput = Math.min(State.posDiscountValue, 100);
+                    discountAmount = Math.round(subtotal * (discountInput / 100));
+                } else {
+                    discountType = 'nominal';
+                    discountAmount = Math.min(Math.round(State.posDiscountValue), subtotal);
+                    discountInput = discountAmount;
+                }
+            }
+
+            const grandTotal = Math.max(0, subtotal - discountAmount);
+            return { subtotal, discountType, discountInput, discountAmount, grandTotal };
+        }
+
+        function updatePosTotalsUI() {
+            const { subtotal, discountType, discountInput, discountAmount, grandTotal } = getPosTotals();
+
+            const subEl = document.getElementById('posSubtotalDisplay');
+            const discEl = document.getElementById('posDiscountDisplay');
+            const discBadge = document.getElementById('posDiscountBadge');
+            const totalEl = document.getElementById('posGrandTotal');
+
+            if (subEl) subEl.textContent = formatRupiah(subtotal);
+            if (discEl) discEl.textContent = discountAmount > 0 ? `- ${formatRupiah(discountAmount)}` : '- Rp 0';
+            if (discBadge) {
+                if (discountAmount > 0) {
+                    discBadge.classList.remove('hidden');
+                    discBadge.textContent = discountType === 'percent' ? `${discountInput}%` : 'Nominal Rp';
+                } else {
+                    discBadge.classList.add('hidden');
+                }
+            }
+            if (totalEl) totalEl.textContent = formatRupiah(grandTotal);
+
+            calculatePosChange();
         }
 
         function selectPosPaymentMethod(method) {
@@ -2223,6 +2412,7 @@
                 }).then(r => {
                     if (r.isConfirmed) {
                         State.posCart = [];
+                        resetPosDiscount();
                         renderPosCart();
                         setupDropdownBahan('pos');
                     }
@@ -2340,11 +2530,12 @@
 
         function clearPosCart() {
             State.posCart = [];
+            resetPosDiscount();
             renderPosCart();
         }
 
         function calculatePosChange() {
-            const grandTotal = State.posCart.reduce((acc, cur) => acc + cur.totalHarga, 0);
+            const { grandTotal } = getPosTotals();
             const payInput = document.getElementById('posPayAmount');
             const changeDisplay = document.getElementById('posChangeDisplay');
             if (!payInput || !changeDisplay) return;
@@ -2368,25 +2559,22 @@
 
         function renderPosCart() {
             const tbody = document.getElementById('posCartTableBody');
-            const totalEl = document.getElementById('posGrandTotal');
             const countEl = document.getElementById('posCartCount');
             const btnCheckout = document.getElementById('btnCheckoutPos');
+            if (!tbody) return;
 
             if (State.posCart.length === 0) {
                 tbody.innerHTML = `<tr><td colspan="5" class="px-4 py-10 text-center text-slate-400 italic text-xs">Keranjang masih kosong. Silakan scan barcode atau pilih barang.</td></tr>`;
-                totalEl.textContent = 'Rp 0';
-                countEl.textContent = '0';
-                btnCheckout.disabled = true;
+                if (countEl) countEl.textContent = '0';
+                if (btnCheckout) btnCheckout.disabled = true;
                 if (document.getElementById('posPayAmount')) document.getElementById('posPayAmount').value = '';
-                calculatePosChange();
+                updatePosTotalsUI();
                 return;
             }
 
-            let grandTotal = 0;
             let totalQty = 0;
 
             tbody.innerHTML = State.posCart.map((item, idx) => {
-                grandTotal += item.totalHarga;
                 totalQty += item.qty;
                 return `
                 <tr class="hover:bg-slate-50">
@@ -2403,13 +2591,12 @@
                 </tr>`;
             }).join('');
 
-            totalEl.textContent = formatRupiah(grandTotal);
-            countEl.textContent = totalQty;
-            btnCheckout.disabled = false;
-            calculatePosChange();
+            if (countEl) countEl.textContent = totalQty;
+            if (btnCheckout) btnCheckout.disabled = false;
+            updatePosTotalsUI();
         }
 
-        // --- FUNGSI CETAK STRUK KASIR (THERMAL 58MM - ANTI POTONG) ---
+        // --- FUNGSI CETAK STRUK KASIR (THERMAL 58MM - DENGAN RINCIAN DISKON) ---
         function printReceiptStruk(receiptData) {
             const storeName = State.settings.store_name || State.settings.app_title || 'ARPRA STORE';
             const storeAddress = State.settings.store_address || receiptData.resto || 'Jl. Raya Utama No. 1';
@@ -2417,15 +2604,32 @@
             const storeFooter = State.settings.store_footer || 'Terima kasih atas kunjungan Anda!\nBarang yang sudah dibeli tidak dapat ditukar.';
             const metode = receiptData.metodeBayar || 'Tunai';
 
+            const subtotal = receiptData.subtotal !== undefined ? receiptData.subtotal : receiptData.grandTotal;
+            const discountAmount = receiptData.discountAmount || 0;
+            const discountLabel = receiptData.discountType === 'percent'
+                ? `DISKON (${receiptData.discountInput}%)`
+                : 'DISKON (Rp)';
+
             const itemsHtml = receiptData.items.map(it => `
                 <tr>
                     <td colspan="2" style="padding-top:4px; font-weight:bold;">${it.nama}</td>
                 </tr>
                 <tr>
                     <td style="padding-bottom:4px;">${it.qty} ${it.satuan} x ${formatRupiah(it.hargaSatuan)}</td>
-                    <td style="padding-bottom:4px; text-align:right; font-weight:bold;">${formatRupiah(it.totalHarga)}</td>
+                    <td style="padding-bottom:4px; text-align:right; font-weight:bold;">${formatRupiah(it.subtotal || it.totalHarga)}</td>
                 </tr>
             `).join('');
+
+            const discountHtml = discountAmount > 0 ? `
+                <tr>
+                    <td style="padding-top:2px;">SUBTOTAL</td>
+                    <td class="text-right" style="padding-top:2px;">${formatRupiah(subtotal)}</td>
+                </tr>
+                <tr>
+                    <td style="padding-top:2px;">${discountLabel}</td>
+                    <td class="text-right" style="padding-top:2px;">-${formatRupiah(discountAmount)}</td>
+                </tr>
+            ` : '';
 
             let paymentDetailHtml = '';
             if (metode === 'Tunai') {
@@ -2482,13 +2686,8 @@
                     <meta charset="utf-8">
                     <title>Struk_${receiptData.idNota}</title>
                     <style>
-                        @page {
-                            size: 58mm auto;
-                            margin: 0mm;
-                        }
-                        * {
-                            box-sizing: border-box;
-                        }
+                        @page { size: 58mm auto; margin: 0mm; }
+                        * { box-sizing: border-box; }
                         body {
                             font-family: 'Courier New', Courier, monospace;
                             font-size: 11px;
@@ -2506,31 +2705,13 @@
                         .divider { border-top: 1px dashed #000; margin: 6px 0; }
                         table { width: 100%; border-collapse: collapse; font-size: 10.5px; table-layout: fixed; }
                         td { word-wrap: break-word; vertical-align: top; }
-                        .no-print {
-                            margin-top: 14px;
-                            display: flex;
-                            gap: 6px;
-                            justify-content: center;
-                        }
-                        .btn {
-                            padding: 7px 12px;
-                            border: none;
-                            border-radius: 6px;
-                            cursor: pointer;
-                            font-family: sans-serif;
-                            font-size: 11px;
-                            font-weight: bold;
-                        }
+                        .no-print { margin-top: 14px; display: flex; gap: 6px; justify-content: center; }
+                        .btn { padding: 7px 12px; border: none; border-radius: 6px; cursor: pointer; font-family: sans-serif; font-size: 11px; font-weight: bold; }
                         .btn-print { background: #2563eb; color: #fff; }
                         .btn-close { background: #e2e8f0; color: #334155; }
                         @media print {
                             .no-print { display: none !important; }
-                            html, body {
-                                width: 48mm !important;
-                                max-width: 48mm !important;
-                                margin: 0 !important;
-                                padding: 2mm 2mm !important;
-                            }
+                            html, body { width: 48mm !important; max-width: 48mm !important; margin: 0 !important; padding: 2mm 2mm !important; }
                         }
                     </style>
                 </head>
@@ -2553,9 +2734,10 @@
                     </table>
                     <div class="divider"></div>
                     <table>
+                        ${discountHtml}
                         <tr style="font-size:12px;" class="bold">
-                            <td style="width:45%;">TOTAL</td>
-                            <td class="text-right" style="width:55%;">${formatRupiah(receiptData.grandTotal)}</td>
+                            <td style="width:45%; padding-top:3px;">TOTAL</td>
+                            <td class="text-right" style="width:55%; padding-top:3px;">${formatRupiah(receiptData.grandTotal)}</td>
                         </tr>
                         ${paymentDetailHtml}
                     </table>
@@ -2586,15 +2768,23 @@
 
             const first = targetList[0];
             let grandTotal = 0;
+            let subtotalAll = 0;
+            let discountTotal = 0;
+
             const items = targetList.map(r => {
-                const sub = parseFloat(r.TotalHarga) || 0;
-                grandTotal += sub;
+                const net = parseCleanNumber(r.TotalHarga, 0);
+                const disc = parseCleanNumber(r.NominalDiskon, 0);
+                const sub = parseCleanNumber(r.Subtotal, 0) || (net + disc);
+                grandTotal += net;
+                subtotalAll += sub;
+                discountTotal += disc;
                 return {
                     nama: r.NamaBahan,
                     qty: r.Qty,
                     satuan: r.Satuan,
-                    hargaSatuan: parseFloat(r.HargaSatuan) || 0,
-                    totalHarga: sub
+                    hargaSatuan: parseCleanNumber(r.HargaSatuan, 0),
+                    subtotal: sub,
+                    totalHarga: net
                 };
             });
 
@@ -2614,6 +2804,10 @@
                 petugas: first.Petugas,
                 resto: first.Resto,
                 items: items,
+                subtotal: subtotalAll,
+                discountType: first.TipeDiskon || 'none',
+                discountInput: parseCleanNumber(first.NilaiDiskon, 0),
+                discountAmount: discountTotal,
                 grandTotal: grandTotal,
                 payAmount: grandTotal,
                 changeAmount: 0,
@@ -2626,7 +2820,7 @@
         function checkoutPos() {
             if (State.posCart.length === 0) return;
 
-            let grandTotal = State.posCart.reduce((acc, cur) => acc + cur.totalHarga, 0);
+            const { subtotal, discountType, discountInput, discountAmount, grandTotal } = getPosTotals();
             const resto = document.getElementById('posResto').value;
             const metodeBayar = document.getElementById('posPaymentMethod')?.value || 'Tunai';
 
@@ -2654,10 +2848,16 @@
                 infoTempoStr = `Termin: ${tempoTermin} | Jatuh Tempo: ${tempoDate}${tempoCustomer ? ' | ' + tempoCustomer : ''}`;
             }
 
+            const discInfoRow = discountAmount > 0
+                ? `<div class="flex justify-between text-amber-700"><span>Diskon (${discountType === 'percent' ? discountInput + '%' : 'Rp'}):</span> <b>- ${formatRupiah(discountAmount)}</b></div>`
+                : '';
+
             let confirmHtml = `
                 <div class="text-sm space-y-1.5 bg-slate-50 p-3.5 rounded-xl border border-slate-200 mb-2 text-left">
                     <div class="flex justify-between"><span>Metode Bayar:</span> <b class="text-blue-600">${metodeBayar}</b></div>
-                    <div class="flex justify-between"><span>Total Belanja:</span> <b class="text-slate-800">${formatRupiah(grandTotal)}</b></div>
+                    <div class="flex justify-between"><span>Subtotal:</span> <b class="text-slate-600">${formatRupiah(subtotal)}</b></div>
+                    ${discInfoRow}
+                    <div class="flex justify-between border-t pt-1"><span>Total Bayar:</span> <b class="text-slate-900 text-base">${formatRupiah(grandTotal)}</b></div>
             `;
             if (metodeBayar === 'Tunai') {
                 confirmHtml += `
@@ -2701,6 +2901,10 @@
                         petugas: State.user.name,
                         resto: resto,
                         items: JSON.parse(JSON.stringify(State.posCart)),
+                        subtotal: subtotal,
+                        discountType: discountType,
+                        discountInput: discountInput,
+                        discountAmount: discountAmount,
                         grandTotal: grandTotal,
                         payAmount: payAmount,
                         changeAmount: changeAmount,
@@ -2712,6 +2916,7 @@
 
                     let batchPayloads = [];
                     let lowStockWarnings = [];
+                    let remainingDiscount = discountAmount;
 
                     State.posCart.forEach((item, idx) => {
                         const masterItem = State.masterData.find(m => String(m.KodeBahan).trim().toUpperCase() === item.kode);
@@ -2742,6 +2947,19 @@
                             }
                         }
 
+                        // Distribusikan potongan diskon secara proporsional per item agar laporan per item & per nota sinkron
+                        const itemSubtotal = item.totalHarga;
+                        let itemDiscount = 0;
+                        if (discountAmount > 0 && subtotal > 0) {
+                            if (idx === State.posCart.length - 1) {
+                                itemDiscount = remainingDiscount;
+                            } else {
+                                itemDiscount = Math.min(remainingDiscount, Math.round((itemSubtotal / subtotal) * discountAmount));
+                                remainingDiscount -= itemDiscount;
+                            }
+                        }
+                        const itemNetTotal = Math.max(0, itemSubtotal - itemDiscount);
+
                         batchPayloads.push({
                             idNota: `${idNota}-${idx+1}`,
                             tanggal: tanggal,
@@ -2751,7 +2969,11 @@
                             qty: item.qty,
                             satuan: item.satuan,
                             hargaSatuan: item.hargaSatuan,
-                            totalHarga: item.totalHarga,
+                            subtotal: itemSubtotal,
+                            tipeDiskon: discountType,
+                            nilaiDiskon: discountInput,
+                            nominalDiskon: itemDiscount,
+                            totalHarga: itemNetTotal,
                             petugas: State.user.name,
                             resto: resto,
                             metodeBayar: metodeBayar,
@@ -2767,17 +2989,20 @@
                     runGas('saveSalesBatch', batchPayloads).then(res => {
                         syncLocalState(res, false);
                         State.posCart = [];
+                        resetPosDiscount();
                         if (document.getElementById('posTempoCustomer')) document.getElementById('posTempoCustomer').value = '';
                         renderPosCart();
                         filterPosHistory();
 
                         printReceiptStruk(receiptData);
 
+                        const discMsg = discountAmount > 0 ? `<br>Diskon (${discountType === 'percent' ? discountInput + '%' : 'Rp'}): <b class="text-amber-600">-${formatRupiah(discountAmount)}</b>` : '';
+
                         if (lowStockWarnings.length > 0) {
                             Swal.fire({
                                 icon: 'warning',
                                 title: 'Transaksi Berhasil & Peringatan Stok!',
-                                html: `Pembayaran (${metodeBayar}) sebesar <b>${formatRupiah(grandTotal)}</b> berhasil disimpan.<br><br><div class="p-3 bg-amber-50 border border-amber-200 rounded-lg text-left text-xs text-amber-800"><b>⚠️ Perhatian Stok Menipis/Habis:</b><ul class="list-disc pl-4 mt-1">${lowStockWarnings.map(w=>`<li>${w}</li>`).join('')}</ul></div>`,
+                                html: `Pembayaran (${metodeBayar}) sebesar <b>${formatRupiah(grandTotal)}</b> berhasil disimpan.${discMsg}<br><br><div class="p-3 bg-amber-50 border border-amber-200 rounded-lg text-left text-xs text-amber-800"><b>⚠️ Perhatian Stok Menipis/Habis:</b><ul class="list-disc pl-4 mt-1">${lowStockWarnings.map(w=>`<li>${w}</li>`).join('')}</ul></div>`,
                                 showCancelButton: true,
                                 confirmButtonText: '<i class="fa-solid fa-print"></i> Cetak Ulang Struk',
                                 cancelButtonText: 'Tutup'
@@ -2788,7 +3013,7 @@
                             Swal.fire({
                                 icon: 'success',
                                 title: 'Transaksi Selesai!',
-                                html: `Total <b>${formatRupiah(grandTotal)}</b> (${metodeBayar}) berhasil disimpan.` + (metodeBayar === 'Tunai' ? `<br>Kembalian: <b class="text-emerald-600">${formatRupiah(changeAmount)}</b>` : ''),
+                                html: `Total <b>${formatRupiah(grandTotal)}</b> (${metodeBayar}) berhasil disimpan.${discMsg}` + (metodeBayar === 'Tunai' ? `<br>Kembalian: <b class="text-emerald-600">${formatRupiah(changeAmount)}</b>` : ''),
                                 showCancelButton: true,
                                 confirmButtonText: '<i class="fa-solid fa-print"></i> Cetak Ulang Struk',
                                 cancelButtonText: 'Selesai'
@@ -2801,6 +3026,20 @@
                     });
                 }
             });
+        }
+
+        function formatDiscountBadgeHtml(tipe, nilai, nominal) {
+            const nom = parseCleanNumber(nominal, 0);
+            if (nom <= 0) return `<span class="text-xs text-slate-400">-</span>`;
+            const isPercent = String(tipe || '').toLowerCase() === 'percent';
+            const badgeColor = isPercent ? 'bg-indigo-100 text-indigo-700' : 'bg-teal-100 text-teal-700';
+            const badgeText = isPercent ? `${parseCleanNumber(nilai, 0)}%` : 'Rp';
+            return `
+                <div class="flex items-center gap-1">
+                    <span class="px-1.5 py-0.5 rounded text-[10px] font-bold ${badgeColor}">${badgeText}</span>
+                    <span class="font-bold text-amber-700 text-xs">-${formatRupiah(nom)}</span>
+                </div>
+            `;
         }
 
         function filterPosHistory() {
@@ -2862,6 +3101,7 @@
                         <div class="text-[10px] font-mono text-slate-400">${r.KodeBahan}</div>
                     </td>
                     <td class="px-5 py-3 font-bold text-slate-700">${r.Qty} <span class="text-xs font-normal">${r.Satuan}</span></td>
+                    <td class="px-5 py-3">${formatDiscountBadgeHtml(r.TipeDiskon, r.NilaiDiskon, r.NominalDiskon)}</td>
                     <td class="px-5 py-3">
                         <span class="px-2 py-0.5 rounded text-[10px] font-bold ${badgeMetode}">${metode}</span>
                         ${r.InfoTempo && r.InfoTempo !== '-' ? `<div class="text-[10px] text-amber-700 mt-0.5">${r.InfoTempo}</div>` : ''}
@@ -2890,7 +3130,7 @@
             }
         }
 
-        // --- PUSAT LAPORAN LENGKAP LOGIC ---
+        // --- PUSAT LAPORAN LENGKAP LOGIC (TERMASUK LAPORAN DISKON) ---
         function loadLaporanView(container) {
             container.appendChild(document.getElementById('tpl-laporan').content.cloneNode(true));
             const selResto = document.getElementById('lapFilterResto');
@@ -2908,8 +3148,9 @@
         function switchLaporanTab(tab) {
             State.lapTab = tab;
             const titleMeta = {
-                per_transaksi: { title: 'Laporan Penjualan Per Transaksi (Nota)', sub: 'Rekapitulasi transaksi penjualan berdasarkan nomor nota, metode bayar, dan omzet.' },
-                all_sales: { title: 'Laporan Penjualan Per Item', sub: 'Rincian seluruh item barang yang terjual beserta kuantitas dan harga jual.' },
+                per_transaksi: { title: 'Laporan Penjualan Per Transaksi (Nota)', sub: 'Rekapitulasi transaksi penjualan berdasarkan nomor nota, subtotal, diskon, metode bayar, dan omzet bersih.' },
+                all_sales: { title: 'Laporan Penjualan Per Item', sub: 'Rincian seluruh item barang yang terjual beserta potongan diskon dan harga bersih.' },
+                diskon: { title: 'Laporan Diskon (% & Nominal Rupiah)', sub: 'Rekapitulasi khusus seluruh transaksi yang menggunakan diskon persentase (%) maupun potongan nominal rupiah (Rp).' },
                 tunai: { title: 'Laporan Penjualan Cash / Tunai', sub: 'Daftar transaksi penjualan dengan pembayaran tunai langsung.' },
                 qris: { title: 'Laporan Penjualan QRIS', sub: 'Daftar transaksi penjualan dengan pembayaran non-tunai QRIS.' },
                 tempo: { title: 'Laporan Piutang Pelanggan (Tempo)', sub: 'Daftar tagihan penjualan kredit / tempo pelanggan beserta jadwal jatuh tempo.' },
@@ -2935,7 +3176,9 @@
                 const rawId = String(r.ID || '').trim();
                 const parts = rawId.split('-');
                 const baseNota = (parts.length >= 2 && parts[0] === 'INV') ? `${parts[0]}-${parts[1]}` : rawId;
-                const totalItem = parseCleanNumber(r.TotalHarga, 0);
+                const netItem = parseCleanNumber(r.TotalHarga, 0);
+                const discItem = parseCleanNumber(r.NominalDiskon, 0);
+                const subItem = parseCleanNumber(r.Subtotal, 0) || (netItem + discItem);
                 const qtyItem = Math.abs(parseCleanNumber(r.Qty, 0));
 
                 if (!grouped[baseNota]) {
@@ -2946,13 +3189,23 @@
                         Petugas: r.Petugas,
                         MetodeBayar: r.MetodeBayar || 'Tunai',
                         InfoTempo: r.InfoTempo || '-',
+                        TipeDiskon: r.TipeDiskon || 'none',
+                        NilaiDiskon: parseCleanNumber(r.NilaiDiskon, 0),
+                        NominalDiskon: 0,
+                        Subtotal: 0,
                         TotalQty: 0,
                         TotalOmzet: 0,
                         ItemsSummary: []
                     };
                 }
                 grouped[baseNota].TotalQty += qtyItem;
-                grouped[baseNota].TotalOmzet += totalItem;
+                grouped[baseNota].Subtotal += subItem;
+                grouped[baseNota].NominalDiskon += discItem;
+                grouped[baseNota].TotalOmzet += netItem;
+                if (grouped[baseNota].TipeDiskon === 'none' && r.TipeDiskon && r.TipeDiskon !== 'none') {
+                    grouped[baseNota].TipeDiskon = r.TipeDiskon;
+                    grouped[baseNota].NilaiDiskon = parseCleanNumber(r.NilaiDiskon, 0);
+                }
                 grouped[baseNota].ItemsSummary.push(`${r.NamaBahan} (${qtyItem} ${r.Satuan})`);
             });
             return Object.values(grouped);
@@ -2971,6 +3224,7 @@
 
             let source = [];
             if (tab === 'per_transaksi') source = buildGroupedSalesPerNota(State.salesHistory);
+            else if (tab === 'diskon') source = buildGroupedSalesPerNota(State.salesHistory).filter(n => n.NominalDiskon > 0);
             else if (tab === 'all_sales') source = State.salesHistory;
             else if (tab === 'tunai') source = State.salesHistory.filter(s => String(s.MetodeBayar || 'Tunai').toLowerCase() === 'tunai');
             else if (tab === 'qris') source = State.salesHistory.filter(s => String(s.MetodeBayar || '').toLowerCase() === 'qris');
@@ -3006,8 +3260,55 @@
             const tab = State.lapTab;
             const data = State.lapFiltered;
 
-            if (tab === 'per_transaksi') {
+            if (tab === 'diskon') {
+                let totalGross = 0;
+                let totalDiscount = 0;
+                let totalNet = 0;
+                let pctCount = 0;
+                let pctTotal = 0;
+                let nomCount = 0;
+                let nomTotal = 0;
+
+                data.forEach(r => {
+                    totalGross += parseCleanNumber(r.Subtotal, 0);
+                    const disc = parseCleanNumber(r.NominalDiskon, 0);
+                    totalDiscount += disc;
+                    totalNet += parseCleanNumber(r.TotalOmzet, 0);
+                    if (String(r.TipeDiskon || '').toLowerCase() === 'percent') {
+                        pctCount++;
+                        pctTotal += disc;
+                    } else {
+                        nomCount++;
+                        nomTotal += disc;
+                    }
+                });
+                const ratio = totalGross > 0 ? ((totalDiscount / totalGross) * 100).toFixed(1) : '0.0';
+
+                box.innerHTML = `
+                    <div class="bg-amber-50 border border-amber-200 p-3.5 rounded-xl">
+                        <span class="text-[11px] font-bold text-amber-800 uppercase">Total Potongan Diskon</span>
+                        <div class="text-xl font-extrabold text-amber-700 mt-0.5">${formatRupiah(totalDiscount)}</div>
+                        <div class="text-[11px] text-amber-700/90 mt-0.5">${ratio}% dari penjualan kotor (${data.length} Nota)</div>
+                    </div>
+                    <div class="bg-indigo-50 border border-indigo-200 p-3.5 rounded-xl">
+                        <span class="text-[11px] font-bold text-indigo-700 uppercase">Diskon Persentase (%)</span>
+                        <div class="text-xl font-extrabold text-indigo-700 mt-0.5">${formatRupiah(pctTotal)}</div>
+                        <div class="text-[11px] text-indigo-600 mt-0.5">${pctCount} Transaksi</div>
+                    </div>
+                    <div class="bg-teal-50 border border-teal-200 p-3.5 rounded-xl">
+                        <span class="text-[11px] font-bold text-teal-700 uppercase">Diskon Nominal (Rp)</span>
+                        <div class="text-xl font-extrabold text-teal-700 mt-0.5">${formatRupiah(nomTotal)}</div>
+                        <div class="text-[11px] text-teal-600 mt-0.5">${nomCount} Transaksi</div>
+                    </div>
+                    <div class="bg-emerald-50 border border-emerald-200 p-3.5 rounded-xl">
+                        <span class="text-[11px] font-bold text-emerald-700 uppercase">Omzet Bersih (Setelah Diskon)</span>
+                        <div class="text-xl font-extrabold text-emerald-700 mt-0.5">${formatRupiah(totalNet)}</div>
+                        <div class="text-[11px] text-slate-500 mt-0.5">Kotor: ${formatRupiah(totalGross)}</div>
+                    </div>
+                `;
+            } else if (tab === 'per_transaksi') {
                 let totalOmzet = 0;
+                let totalDiskon = 0;
                 let totalTunai = 0;
                 let totalQris = 0;
                 let totalPiutang = 0;
@@ -3015,6 +3316,7 @@
                 data.forEach(r => {
                     const nom = parseCleanNumber(r.TotalOmzet, 0);
                     totalOmzet += nom;
+                    totalDiskon += parseCleanNumber(r.NominalDiskon, 0);
                     const m = String(r.MetodeBayar || 'Tunai').toLowerCase();
                     if (m === 'qris') totalQris += nom;
                     else if (m === 'tempo') totalPiutang += nom;
@@ -3025,32 +3327,34 @@
                     <div class="bg-blue-50 border border-blue-100 p-3.5 rounded-xl">
                         <span class="text-[11px] font-bold text-blue-600 uppercase">Total Nota Transaksi</span>
                         <div class="text-xl font-extrabold text-slate-800 mt-0.5">${data.length} <span class="text-xs font-normal text-slate-500">Nota</span></div>
-                        <div class="text-[11px] text-emerald-700 font-semibold mt-0.5">Cash: ${formatRupiah(totalTunai)}</div>
+                        <div class="text-[11px] text-emerald-700 font-semibold mt-0.5">Cash: ${formatRupiah(totalTunai)} | QRIS: ${formatRupiah(totalQris)}</div>
                     </div>
                     <div class="bg-emerald-50 border border-emerald-100 p-3.5 rounded-xl">
-                        <span class="text-[11px] font-bold text-emerald-600 uppercase">Total Hasil Omzet</span>
+                        <span class="text-[11px] font-bold text-emerald-600 uppercase">Total Omzet Bersih</span>
                         <div class="text-xl font-extrabold text-emerald-700 mt-0.5">${formatRupiah(totalOmzet)}</div>
-                        <div class="text-[11px] text-blue-700 font-semibold mt-0.5">QRIS: ${formatRupiah(totalQris)}</div>
+                        <div class="text-[11px] text-slate-500 mt-0.5">Kotor: ${formatRupiah(totalOmzet + totalDiskon)}</div>
                     </div>
                     <div class="bg-amber-50 border border-amber-200 p-3.5 rounded-xl">
-                        <span class="text-[11px] font-bold text-amber-700 uppercase">Total Piutang (Tempo)</span>
-                        <div class="text-xl font-extrabold text-amber-800 mt-0.5">${formatRupiah(totalPiutang)}</div>
-                        <div class="text-[11px] text-amber-700 mt-0.5">Belum Tertagih / Kredit</div>
+                        <span class="text-[11px] font-bold text-amber-800 uppercase">Total Diskon Diberikan</span>
+                        <div class="text-xl font-extrabold text-amber-700 mt-0.5">${formatRupiah(totalDiskon)}</div>
+                        <div class="text-[11px] text-amber-700 mt-0.5">Potongan % & Rupiah</div>
                     </div>
                     <div class="bg-slate-50 border border-slate-200 p-3.5 rounded-xl">
-                        <span class="text-[11px] font-bold text-slate-500 uppercase">Omzet Bersih Diterima</span>
-                        <div class="text-xl font-extrabold text-slate-800 mt-0.5">${formatRupiah(totalTunai + totalQris)}</div>
-                        <div class="text-[11px] text-slate-500 mt-0.5">Tunai + QRIS</div>
+                        <span class="text-[11px] font-bold text-slate-500 uppercase">Total Piutang (Tempo)</span>
+                        <div class="text-xl font-extrabold text-slate-800 mt-0.5">${formatRupiah(totalPiutang)}</div>
+                        <div class="text-[11px] text-slate-500 mt-0.5">Belum Tertagih / Kredit</div>
                     </div>
                 `;
             } else if (['all_sales', 'tunai', 'qris', 'tempo'].includes(tab)) {
                 let totalOmzet = 0;
+                let totalDiskon = 0;
                 let totalQty = 0;
                 data.forEach(r => {
                     totalOmzet += parseCleanNumber(r.TotalHarga, 0);
+                    totalDiskon += parseCleanNumber(r.NominalDiskon, 0);
                     totalQty += Math.abs(parseCleanNumber(r.Qty, 0));
                 });
-                const labelNom = tab === 'tempo' ? 'Total Piutang Pelanggan' : 'Total Omzet';
+                const labelNom = tab === 'tempo' ? 'Total Piutang Pelanggan' : 'Total Omzet Bersih';
                 box.innerHTML = `
                     <div class="bg-blue-50 border border-blue-100 p-3.5 rounded-xl">
                         <span class="text-[11px] font-bold text-blue-600 uppercase">Total Item Terjual</span>
@@ -3059,6 +3363,10 @@
                     <div class="${tab === 'tempo' ? 'bg-amber-50 border-amber-200' : 'bg-emerald-50 border-emerald-100'} p-3.5 rounded-xl">
                         <span class="text-[11px] font-bold ${tab === 'tempo' ? 'text-amber-700' : 'text-emerald-600'} uppercase">${labelNom}</span>
                         <div class="text-xl font-extrabold ${tab === 'tempo' ? 'text-amber-800' : 'text-emerald-700'} mt-0.5">${formatRupiah(totalOmzet)}</div>
+                    </div>
+                    <div class="bg-amber-50 border border-amber-200 p-3.5 rounded-xl">
+                        <span class="text-[11px] font-bold text-amber-800 uppercase">Total Diskon</span>
+                        <div class="text-xl font-extrabold text-amber-700 mt-0.5">${formatRupiah(totalDiskon)}</div>
                     </div>
                     <div class="bg-slate-50 border border-slate-200 p-3.5 rounded-xl">
                         <span class="text-[11px] font-bold text-slate-500 uppercase">Total Kuantitas</span>
@@ -3119,16 +3427,17 @@
             if (!thead || !tbody) return;
 
             const tab = State.lapTab;
-            const isPerTransaksi = tab === 'per_transaksi';
+            const isPerTransaksi = tab === 'per_transaksi' || tab === 'diskon';
             const isSales = ['all_sales', 'tunai', 'qris', 'tempo'].includes(tab);
 
             if (isPerTransaksi) {
                 thead.innerHTML = `<tr>
                     <th class="px-4 py-3 font-medium">No. Nota & Waktu</th>
                     <th class="px-4 py-3 font-medium">Rincian Item Dibeli</th>
-                    <th class="px-4 py-3 font-medium text-center">Jml Item</th>
-                    <th class="px-4 py-3 font-medium">Metode & Status Piutang</th>
-                    <th class="px-4 py-3 font-medium text-right">Total Nota</th>
+                    <th class="px-4 py-3 font-medium text-right">Subtotal</th>
+                    <th class="px-4 py-3 font-medium">Diskon</th>
+                    <th class="px-4 py-3 font-medium text-right">Total Bersih</th>
+                    <th class="px-4 py-3 font-medium">Metode</th>
                     <th class="px-4 py-3 font-medium">Toko / Kasir</th>
                     <th class="px-4 py-3 font-medium text-center">Aksi</th>
                 </tr>`;
@@ -3138,7 +3447,8 @@
                     <th class="px-4 py-3 font-medium">Barang</th>
                     <th class="px-4 py-3 font-medium">Qty</th>
                     <th class="px-4 py-3 font-medium">Harga Satuan</th>
-                    <th class="px-4 py-3 font-medium">Total Harga</th>
+                    <th class="px-4 py-3 font-medium">Diskon</th>
+                    <th class="px-4 py-3 font-medium">Total Bersih</th>
                     <th class="px-4 py-3 font-medium">Metode & Tempo</th>
                     <th class="px-4 py-3 font-medium">Toko / Kasir</th>
                 </tr>`;
@@ -3191,10 +3501,11 @@
 
                     return `<tr class="hover:bg-slate-50">
                         <td class="px-4 py-3"><div class="font-bold font-mono text-xs text-blue-600">${r.ID}</div><div class="text-[10px] text-slate-400">${r.Tanggal}</div></td>
-                        <td class="px-4 py-3 text-xs whitespace-normal max-w-[260px] text-slate-700">${r.ItemsSummary.join(', ')}</td>
-                        <td class="px-4 py-3 text-center font-bold">${r.TotalQty}</td>
-                        <td class="px-4 py-3"><span class="px-2 py-0.5 rounded text-[10px] font-bold ${badge}">${metode === 'Tempo' ? 'PIUTANG (TEMPO)' : metode}</span>${r.InfoTempo && r.InfoTempo !== '-' ? `<div class="text-[10px] text-amber-700 mt-0.5">${r.InfoTempo}</div>` : ''}</td>
+                        <td class="px-4 py-3 text-xs whitespace-normal max-w-[240px] text-slate-700">${r.ItemsSummary.join(', ')}</td>
+                        <td class="px-4 py-3 text-right text-xs text-slate-600 font-medium">${formatRupiah(r.Subtotal)}</td>
+                        <td class="px-4 py-3">${formatDiscountBadgeHtml(r.TipeDiskon, r.NilaiDiskon, r.NominalDiskon)}</td>
                         <td class="px-4 py-3 text-right font-extrabold text-emerald-600">${formatRupiah(r.TotalOmzet)}</td>
+                        <td class="px-4 py-3"><span class="px-2 py-0.5 rounded text-[10px] font-bold ${badge}">${metode === 'Tempo' ? 'PIUTANG' : metode}</span>${r.InfoTempo && r.InfoTempo !== '-' ? `<div class="text-[10px] text-amber-700 mt-0.5">${r.InfoTempo}</div>` : ''}</td>
                         <td class="px-4 py-3 text-xs"><div class="font-semibold">${r.Resto}</div><div class="text-[10px] text-slate-400">${r.Petugas}</div></td>
                         <td class="px-4 py-3 text-center"><button onclick="reprintPosReceipt('${r.ID}')" class="text-blue-600 hover:bg-blue-50 p-1.5 rounded" title="Cetak Struk Nota"><i class="fa-solid fa-print"></i></button></td>
                     </tr>`;
@@ -3209,6 +3520,7 @@
                         <td class="px-4 py-3"><div class="font-medium text-slate-800">${r.NamaBahan}</div><div class="text-[10px] font-mono text-slate-400">${r.KodeBahan}</div></td>
                         <td class="px-4 py-3 font-bold">${r.Qty} <span class="text-xs font-normal">${r.Satuan}</span></td>
                         <td class="px-4 py-3 text-xs">${formatRupiah(r.HargaSatuan)}</td>
+                        <td class="px-4 py-3">${formatDiscountBadgeHtml(r.TipeDiskon, r.NilaiDiskon, r.NominalDiskon)}</td>
                         <td class="px-4 py-3 font-bold text-emerald-600">${formatRupiah(r.TotalHarga)}</td>
                         <td class="px-4 py-3"><span class="px-2 py-0.5 rounded text-[10px] font-bold ${badge}">${metode}</span>${r.InfoTempo && r.InfoTempo !== '-' ? `<div class="text-[10px] text-amber-700 mt-0.5">${r.InfoTempo}</div>` : ''}</td>
                         <td class="px-4 py-3 text-xs"><div class="font-semibold">${r.Resto}</div><div class="text-[10px] text-slate-400">${r.Petugas}</div></td>
@@ -3290,6 +3602,7 @@
             const tab = State.lapTab;
             const titleMap = {
                 per_transaksi: 'Laporan Penjualan Per Transaksi',
+                diskon: 'Laporan Diskon Penjualan',
                 all_sales: 'Laporan Semua Penjualan Per Item',
                 tunai: 'Laporan Penjualan Tunai',
                 qris: 'Laporan Penjualan QRIS',
@@ -3300,12 +3613,12 @@
                 rusak: 'Laporan Barang Rusak'
             };
             const title = titleMap[tab] || 'Laporan Transaksi';
-            const isPerTransaksi = tab === 'per_transaksi';
+            const isPerTransaksi = tab === 'per_transaksi' || tab === 'diskon';
             const isSales = ['all_sales', 'tunai', 'qris', 'tempo'].includes(tab);
             const columns = isPerTransaksi
-                ? ['ID', 'Tanggal', 'TotalQty', 'TotalOmzet', 'MetodeBayar', 'InfoTempo', 'Petugas', 'Resto']
+                ? ['ID', 'Tanggal', 'TotalQty', 'Subtotal', 'TipeDiskon', 'NilaiDiskon', 'NominalDiskon', 'TotalOmzet', 'MetodeBayar', 'InfoTempo', 'Petugas', 'Resto']
                 : (isSales
-                    ? ['ID', 'Tanggal', 'KodeBahan', 'NamaBahan', 'Qty', 'Satuan', 'HargaSatuan', 'TotalHarga', 'MetodeBayar', 'InfoTempo', 'Petugas', 'Resto']
+                    ? ['ID', 'Tanggal', 'KodeBahan', 'NamaBahan', 'Qty', 'Satuan', 'HargaSatuan', 'Subtotal', 'TipeDiskon', 'NilaiDiskon', 'NominalDiskon', 'TotalHarga', 'MetodeBayar', 'InfoTempo', 'Petugas', 'Resto']
                     : ((tab === 'inbound' || tab === 'hutang_supplier')
                         ? ['ID', 'Tanggal', 'KodeBahan', 'NamaBahan', 'Qty', 'Satuan', 'Supplier', 'HargaBeli', 'StatusHutang', 'TempoSupplier', 'Petugas', 'Resto']
                         : (tab === 'rusak'
@@ -3322,13 +3635,13 @@
                 doc.setFontSize(9);
                 doc.text(`Dicetak pada: ${new Date().toLocaleString('id-ID')} | Oleh: ${State.user.name}`, 14, 21);
 
-                const body = State.lapFiltered.map(row => columns.map(col => col === 'Qty' ? Math.abs(parseFloat(row.Qty)) : (row[col] || '')));
+                const body = State.lapFiltered.map(row => columns.map(col => col === 'Qty' ? Math.abs(parseFloat(row.Qty)) : (row[col] !== undefined ? row[col] : '')));
                 doc.autoTable({
                     startY: 27,
                     head: [columns],
                     body: body,
                     theme: 'grid',
-                    styles: { fontSize: 7.5 },
+                    styles: { fontSize: 7 },
                     headStyles: { fillColor: [37, 99, 235] }
                 });
                 doc.save(fileName + '.pdf');
@@ -3336,7 +3649,7 @@
                 let csvContent = columns.join(";") + "\n";
                 State.lapFiltered.forEach(row => {
                     csvContent += columns.map(col => {
-                        const val = col === 'Qty' ? Math.abs(parseFloat(row.Qty)) : (row[col] || '');
+                        const val = col === 'Qty' ? Math.abs(parseFloat(row.Qty)) : (row[col] !== undefined ? row[col] : '');
                         return `"${String(val).replace(/"/g, '""')}"`;
                     }).join(";") + "\n";
                 });
@@ -4436,7 +4749,7 @@
             if (State.currentView === 'penjualan') {
                 dataToExport = State.posHistFiltered;
                 tableTitle = 'Riwayat Transaksi Penjualan';
-                columns = ['ID', 'Tanggal', 'KodeBahan', 'NamaBahan', 'Qty', 'Satuan', 'HargaSatuan', 'TotalHarga', 'MetodeBayar', 'InfoTempo', 'Petugas', 'Resto'];
+                columns = ['ID', 'Tanggal', 'KodeBahan', 'NamaBahan', 'Qty', 'Satuan', 'HargaSatuan', 'Subtotal', 'TipeDiskon', 'NilaiDiskon', 'NominalDiskon', 'TotalHarga', 'MetodeBayar', 'InfoTempo', 'Petugas', 'Resto'];
             } else if (State.currentView === 'inbound' || State.currentView === 'outbound' || State.currentView === 'rusak') {
                 dataToExport = State.scanHistFiltered;
                 if(State.currentView === 'inbound') tableTitle = 'Riwayat Barang Masuk';
@@ -4473,7 +4786,7 @@
                     let rowArray = [];
                     columns.forEach(col => {
                         if(col === 'Qty') rowArray.push(Math.abs(parseFloat(row.Qty)));
-                        else rowArray.push(row[col] || '');
+                        else rowArray.push(row[col] !== undefined ? row[col] : '');
                     });
                     return rowArray;
                 });
@@ -4483,7 +4796,7 @@
                     head: [columns.map(c => c.replace(/([A-Z])/g, ' $1').trim())],
                     body: body,
                     theme: 'grid',
-                    styles: { fontSize: 8 },
+                    styles: { fontSize: 7 },
                     headStyles: { fillColor: [37, 99, 235] }
                 });
 
@@ -4494,7 +4807,7 @@
                 dataToExport.forEach(row => {
                     let rowArray = [];
                     columns.forEach(col => {
-                        let val = col === 'Qty' ? Math.abs(parseFloat(row.Qty)) : (row[col] || '');
+                        let val = col === 'Qty' ? Math.abs(parseFloat(row.Qty)) : (row[col] !== undefined ? row[col] : '');
                         rowArray.push(`"${String(val).replace(/"/g, '""')}"`);
                     });
                     csvContent += rowArray.join(";") + "\n";
