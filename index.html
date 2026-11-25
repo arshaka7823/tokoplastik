@@ -1308,8 +1308,8 @@
 
         let masterDataFiltered = [];
 
-        // === Konfigurasi API URL (Cache-Buster untuk Sinkronisasi Real-time HP/Tablet/Laptop) ===
-        const API_URL = "https://script.google.com/macros/s/AKfycbx8BHcIRGkNafv9VYy-r_blCHn9n1ULd897JkCtsdk2wsgjsr7_Z2yGPxDe0DgMhcya/exec";
+        // === Konfigurasi API URL ===
+        const API_URL = "https://script.google.com/macros/s/AKfycbw-Vdo5eMEStrIRHFa8k76oPvUk08CQcYgtZNukCXh7msvp8u0N_Vzp5qNttk4BJT7S/exec";
 
         // --- PWA & IOS INSTALLABILITY SETUP ---
         let deferredInstallPrompt = null;
@@ -3239,7 +3239,6 @@
                             }
                         }
 
-                        // Distribusikan potongan diskon secara proporsional per item agar laporan per item & per nota sinkron
                         const itemSubtotal = item.totalHarga;
                         let itemDiscount = 0;
                         if (discountAmount > 0 && subtotal > 0) {
@@ -3422,7 +3421,7 @@
             }
         }
 
-        // --- PUSAT LAPORAN LENGKAP LOGIC (TERMASUK LAPORAN DISKON) ---
+        // --- PUSAT LAPORAN LENGKAP LOGIC (DENGAN EDIT CICILAN / PELUNASAN & NOTE) ---
         function loadLaporanView(container) {
             container.appendChild(document.getElementById('tpl-laporan').content.cloneNode(true));
             const selResto = document.getElementById('lapFilterResto');
@@ -3445,9 +3444,9 @@
                 diskon: { title: 'Laporan Diskon (% & Nominal Rupiah)', sub: 'Rekapitulasi khusus seluruh transaksi yang menggunakan diskon persentase (%) maupun potongan nominal rupiah (Rp).' },
                 tunai: { title: 'Laporan Penjualan Cash / Tunai', sub: 'Daftar transaksi penjualan dengan pembayaran tunai langsung.' },
                 qris: { title: 'Laporan Penjualan QRIS', sub: 'Daftar transaksi penjualan dengan pembayaran non-tunai QRIS.' },
-                tempo: { title: 'Laporan Piutang Pelanggan (Tempo)', sub: 'Daftar tagihan penjualan kredit / tempo pelanggan beserta jadwal jatuh tempo.' },
-                hutang_supplier: { title: 'Laporan Hutang ke Supplier', sub: 'Daftar pembelian barang masuk dari supplier yang berstatus Belum Lunas / Tempo.' },
-                inbound: { title: 'Laporan Barang Masuk & Supplier', sub: 'Riwayat seluruh barang masuk beserta nama supplier, harga beli, dan jatuh tempo.' },
+                tempo: { title: 'Laporan Piutang Pelanggan (Tempo)', sub: 'Daftar tagihan penjualan kredit / tempo pelanggan. Klik Edit / Cicil untuk mencatat cicilan, pelunasan, dan catatan (note).' },
+                hutang_supplier: { title: 'Laporan Hutang ke Supplier', sub: 'Daftar pembelian barang masuk dari supplier yang berstatus Belum Lunas / Cicil. Klik Edit / Cicil untuk update pembayaran.' },
+                inbound: { title: 'Laporan Barang Masuk & Supplier', sub: 'Riwayat seluruh barang masuk beserta nama supplier, harga beli, status cicilan/pelunasan, dan catatan.' },
                 outbound: { title: 'Laporan Barang Keluar', sub: 'Riwayat pengeluaran barang non-penjualan dari gudang/toko.' },
                 rusak: { title: 'Laporan Barang Rusak / Hilang', sub: 'Catatan barang rusak, kadaluarsa, atau hilang beserta keterangannya.' }
             };
@@ -3503,6 +3502,92 @@
             return Object.values(grouped);
         }
 
+        // Helper Status Pembayaran Cicilan / Lunas
+        function getPaymentProgressMeta(total, paidRaw, statusRaw) {
+            const tot = Math.max(0, parseCleanNumber(total, 0));
+            const stLower = String(statusRaw || '').trim().toLowerCase();
+            let paid = parseCleanNumber(paidRaw, 0);
+
+            if (paidRaw === undefined || paidRaw === null || paidRaw === '') {
+                paid = (stLower === 'lunas') ? tot : 0;
+            }
+            if (tot > 0 && paid > tot) paid = tot;
+
+            const remaining = Math.max(0, tot - paid);
+
+            if (tot === 0) {
+                if (stLower === 'lunas') {
+                    return { code: 'LUNAS', label: 'LUNAS', paid: 0, remaining: 0, badgeClass: 'bg-emerald-100 text-emerald-700' };
+                }
+                return { code: 'BELUM LUNAS', label: 'BELUM LUNAS', paid: 0, remaining: 0, badgeClass: 'bg-rose-100 text-rose-700' };
+            }
+
+            if (remaining === 0) {
+                return { code: 'LUNAS', label: 'LUNAS', paid: tot, remaining: 0, badgeClass: 'bg-emerald-100 text-emerald-700' };
+            } else if (paid > 0 && remaining > 0) {
+                return {
+                    code: 'CICIL',
+                    label: `CICIL (Sisa ${formatRupiah(remaining)})`,
+                    paid: paid,
+                    remaining: remaining,
+                    badgeClass: 'bg-amber-100 text-amber-800 border border-amber-300'
+                };
+            } else {
+                return {
+                    code: 'BELUM LUNAS',
+                    label: `BELUM LUNAS (Sisa ${formatRupiah(remaining)})`,
+                    paid: 0,
+                    remaining: remaining,
+                    badgeClass: 'bg-rose-100 text-rose-700'
+                };
+            }
+        }
+
+        function buildGroupedTempoPiutang(salesList) {
+            const grouped = {};
+            (salesList || []).filter(s => String(s.MetodeBayar || '').toLowerCase() === 'tempo').forEach(r => {
+                const rawId = String(r.ID || '').trim();
+                const parts = rawId.split('-');
+                const baseNota = (parts.length >= 2 && parts[0] === 'INV') ? `${parts[0]}-${parts[1]}` : rawId;
+                const netItem = parseCleanNumber(r.TotalHarga, 0);
+                const qtyItem = Math.abs(parseCleanNumber(r.Qty, 0));
+                const hasPaidField = r.JumlahBayar !== undefined && r.JumlahBayar !== '';
+                const itemPaid = hasPaidField ? parseCleanNumber(r.JumlahBayar, 0) : (String(r.StatusPiutang || '').toLowerCase() === 'lunas' ? netItem : 0);
+
+                if (!grouped[baseNota]) {
+                    grouped[baseNota] = {
+                        ID: baseNota,
+                        Tanggal: r.Tanggal,
+                        Resto: r.Resto,
+                        Petugas: r.Petugas,
+                        InfoTempo: r.InfoTempo || '-',
+                        StatusPiutang: r.StatusPiutang || 'Belum Lunas',
+                        CatatanPiutang: r.CatatanPiutang || '',
+                        TotalTagihan: 0,
+                        JumlahBayar: 0,
+                        ItemsSummary: []
+                    };
+                }
+                grouped[baseNota].TotalTagihan += netItem;
+                grouped[baseNota].JumlahBayar += itemPaid;
+                if (r.CatatanPiutang && !grouped[baseNota].CatatanPiutang) {
+                    grouped[baseNota].CatatanPiutang = r.CatatanPiutang;
+                }
+                grouped[baseNota].ItemsSummary.push(`${r.NamaBahan} (${qtyItem} ${r.Satuan})`);
+            });
+
+            return Object.values(grouped).map(g => {
+                const meta = getPaymentProgressMeta(g.TotalTagihan, g.JumlahBayar, g.StatusPiutang);
+                return {
+                    ...g,
+                    JumlahBayar: meta.paid,
+                    SisaPiutang: meta.remaining,
+                    StatusLabel: meta.label,
+                    StatusCode: meta.code
+                };
+            });
+        }
+
         function renderLaporanData() {
             const tab = State.lapTab || 'per_transaksi';
             const sDate = document.getElementById('lapStartDate')?.value || '';
@@ -3520,8 +3605,14 @@
             else if (tab === 'all_sales') source = State.salesHistory;
             else if (tab === 'tunai') source = State.salesHistory.filter(s => String(s.MetodeBayar || 'Tunai').toLowerCase() === 'tunai');
             else if (tab === 'qris') source = State.salesHistory.filter(s => String(s.MetodeBayar || '').toLowerCase() === 'qris');
-            else if (tab === 'tempo') source = State.salesHistory.filter(s => String(s.MetodeBayar || '').toLowerCase() === 'tempo');
-            else if (tab === 'hutang_supplier') source = State.inHistory.filter(i => String(i.StatusHutang || '').toLowerCase() === 'belum lunas' || (i.TempoSupplier && i.TempoSupplier !== '-' && String(i.StatusHutang || '').toLowerCase() !== 'lunas'));
+            else if (tab === 'tempo') source = buildGroupedTempoPiutang(State.salesHistory);
+            else if (tab === 'hutang_supplier') {
+                source = (State.inHistory || []).filter(i => {
+                    const meta = getPaymentProgressMeta(i.HargaBeli, i.JumlahBayar, i.StatusHutang);
+                    const hasTempo = i.TempoSupplier && i.TempoSupplier !== '-';
+                    return meta.code !== 'LUNAS' && (String(i.StatusHutang || '').toLowerCase() === 'belum lunas' || String(i.StatusHutang || '').toLowerCase() === 'cicil' || hasTempo);
+                });
+            }
             else if (tab === 'inbound') source = State.inHistory;
             else if (tab === 'outbound') source = State.outHistory;
             else if (tab === 'rusak') source = State.barangRusak;
@@ -3637,7 +3728,40 @@
                         <div class="text-[11px] text-slate-500 mt-0.5">Belum Tertagih / Kredit</div>
                     </div>
                 `;
-            } else if (['all_sales', 'tunai', 'qris', 'tempo'].includes(tab)) {
+            } else if (tab === 'tempo') {
+                let totalTagihan = 0;
+                let totalTerbayar = 0;
+                let totalSisa = 0;
+                let countCicil = 0;
+                data.forEach(r => {
+                    totalTagihan += parseCleanNumber(r.TotalTagihan, 0);
+                    totalTerbayar += parseCleanNumber(r.JumlahBayar, 0);
+                    totalSisa += parseCleanNumber(r.SisaPiutang, 0);
+                    if (r.StatusCode === 'CICIL') countCicil++;
+                });
+                box.innerHTML = `
+                    <div class="bg-blue-50 border border-blue-100 p-3.5 rounded-xl">
+                        <span class="text-[11px] font-bold text-blue-600 uppercase">Total Piutang Awal</span>
+                        <div class="text-xl font-extrabold text-slate-800 mt-0.5">${formatRupiah(totalTagihan)}</div>
+                        <div class="text-[11px] text-slate-500 mt-0.5">${data.length} Nota Tempo</div>
+                    </div>
+                    <div class="bg-emerald-50 border border-emerald-100 p-3.5 rounded-xl">
+                        <span class="text-[11px] font-bold text-emerald-600 uppercase">Sudah Dibayar / Cicil</span>
+                        <div class="text-xl font-extrabold text-emerald-700 mt-0.5">${formatRupiah(totalTerbayar)}</div>
+                        <div class="text-[11px] text-emerald-700 mt-0.5">${countCicil} Transaksi Dicicil</div>
+                    </div>
+                    <div class="bg-rose-50 border border-rose-200 p-3.5 rounded-xl">
+                        <span class="text-[11px] font-bold text-rose-700 uppercase">Sisa Piutang Berjalan</span>
+                        <div class="text-xl font-extrabold text-rose-700 mt-0.5">${formatRupiah(totalSisa)}</div>
+                        <div class="text-[11px] text-rose-600 mt-0.5">Sisa Tagihan Pelanggan</div>
+                    </div>
+                    <div class="bg-amber-50 border border-amber-200 p-3.5 rounded-xl">
+                        <span class="text-[11px] font-bold text-amber-800 uppercase">Nota Belum Lunas</span>
+                        <div class="text-xl font-extrabold text-amber-700 mt-0.5">${data.filter(x => x.StatusCode !== 'LUNAS').length} <span class="text-xs font-normal">Nota</span></div>
+                        <div class="text-[11px] text-amber-700 mt-0.5">Klik Edit / Cicil untuk update</div>
+                    </div>
+                `;
+            } else if (['all_sales', 'tunai', 'qris'].includes(tab)) {
                 let totalOmzet = 0;
                 let totalDiskon = 0;
                 let totalQty = 0;
@@ -3646,15 +3770,14 @@
                     totalDiskon += parseCleanNumber(r.NominalDiskon, 0);
                     totalQty += Math.abs(parseCleanNumber(r.Qty, 0));
                 });
-                const labelNom = tab === 'tempo' ? 'Total Piutang Pelanggan' : 'Total Omzet Bersih';
                 box.innerHTML = `
                     <div class="bg-blue-50 border border-blue-100 p-3.5 rounded-xl">
                         <span class="text-[11px] font-bold text-blue-600 uppercase">Total Item Terjual</span>
                         <div class="text-xl font-extrabold text-slate-800 mt-0.5">${data.length} <span class="text-xs font-normal text-slate-500">Baris</span></div>
                     </div>
-                    <div class="${tab === 'tempo' ? 'bg-amber-50 border-amber-200' : 'bg-emerald-50 border-emerald-100'} p-3.5 rounded-xl">
-                        <span class="text-[11px] font-bold ${tab === 'tempo' ? 'text-amber-700' : 'text-emerald-600'} uppercase">${labelNom}</span>
-                        <div class="text-xl font-extrabold ${tab === 'tempo' ? 'text-amber-800' : 'text-emerald-700'} mt-0.5">${formatRupiah(totalOmzet)}</div>
+                    <div class="bg-emerald-50 border border-emerald-100 p-3.5 rounded-xl">
+                        <span class="text-[11px] font-bold text-emerald-600 uppercase">Total Omzet Bersih</span>
+                        <div class="text-xl font-extrabold text-emerald-700 mt-0.5">${formatRupiah(totalOmzet)}</div>
                     </div>
                     <div class="bg-amber-50 border border-amber-200 p-3.5 rounded-xl">
                         <span class="text-[11px] font-bold text-amber-800 uppercase">Total Diskon</span>
@@ -3668,31 +3791,36 @@
             } else if (tab === 'hutang_supplier' || tab === 'inbound') {
                 let totalQty = 0;
                 let totalBeli = 0;
-                let totalHutang = 0;
+                let totalDibayar = 0;
+                let totalSisaHutang = 0;
                 data.forEach(r => {
                     totalQty += Math.abs(parseCleanNumber(r.Qty, 0));
                     const hb = parseCleanNumber(r.HargaBeli, 0);
+                    const meta = getPaymentProgressMeta(hb, r.JumlahBayar, r.StatusHutang);
                     totalBeli += hb;
-                    if (String(r.StatusHutang || '').toLowerCase() === 'belum lunas' || (r.TempoSupplier && r.TempoSupplier !== '-' && String(r.StatusHutang || '').toLowerCase() !== 'lunas')) {
-                        totalHutang += hb;
-                    }
+                    totalDibayar += meta.paid;
+                    totalSisaHutang += meta.remaining;
                 });
                 box.innerHTML = `
                     <div class="bg-blue-50 border border-blue-100 p-3.5 rounded-xl">
-                        <span class="text-[11px] font-bold text-blue-600 uppercase">Total Transaksi Masuk</span>
-                        <div class="text-xl font-extrabold text-slate-800 mt-0.5">${data.length} <span class="text-xs font-normal text-slate-500">Data</span></div>
+                        <span class="text-[11px] font-bold text-blue-600 uppercase">Total Pembelian Supplier</span>
+                        <div class="text-xl font-extrabold text-slate-800 mt-0.5">${formatRupiah(totalBeli)}</div>
+                        <div class="text-[11px] text-slate-500 mt-0.5">${data.length} Data (${totalQty} Unit)</div>
                     </div>
                     <div class="bg-emerald-50 border border-emerald-100 p-3.5 rounded-xl">
-                        <span class="text-[11px] font-bold text-emerald-600 uppercase">Total Pembelian Supplier</span>
-                        <div class="text-xl font-extrabold text-emerald-700 mt-0.5">${formatRupiah(totalBeli)}</div>
+                        <span class="text-[11px] font-bold text-emerald-600 uppercase">Sudah Dibayar ke Supplier</span>
+                        <div class="text-xl font-extrabold text-emerald-700 mt-0.5">${formatRupiah(totalDibayar)}</div>
+                        <div class="text-[11px] text-emerald-700 mt-0.5">Termasuk cicilan masuk</div>
                     </div>
                     <div class="bg-rose-50 border border-rose-200 p-3.5 rounded-xl">
-                        <span class="text-[11px] font-bold text-rose-700 uppercase">Total Hutang ke Supplier</span>
-                        <div class="text-xl font-extrabold text-rose-700 mt-0.5">${formatRupiah(totalHutang)}</div>
+                        <span class="text-[11px] font-bold text-rose-700 uppercase">Sisa Hutang ke Supplier</span>
+                        <div class="text-xl font-extrabold text-rose-700 mt-0.5">${formatRupiah(totalSisaHutang)}</div>
+                        <div class="text-[11px] text-rose-600 mt-0.5">Sisa wajib dilunasi</div>
                     </div>
-                    <div class="bg-slate-50 border border-slate-200 p-3.5 rounded-xl">
-                        <span class="text-[11px] font-bold text-slate-500 uppercase">Total Kuantitas Masuk</span>
-                        <div class="text-xl font-extrabold text-slate-800 mt-0.5">${totalQty} <span class="text-xs font-normal text-slate-500">Unit</span></div>
+                    <div class="bg-amber-50 border border-amber-200 p-3.5 rounded-xl">
+                        <span class="text-[11px] font-bold text-amber-800 uppercase">Transaksi Cicilan</span>
+                        <div class="text-xl font-extrabold text-amber-700 mt-0.5">${data.filter(x => getPaymentProgressMeta(x.HargaBeli, x.JumlahBayar, x.StatusHutang).code === 'CICIL').length} <span class="text-xs font-normal">Transaksi</span></div>
+                        <div class="text-[11px] text-amber-700 mt-0.5">Klik Edit / Cicil untuk update</div>
                     </div>
                 `;
             } else {
@@ -3720,7 +3848,7 @@
 
             const tab = State.lapTab;
             const isPerTransaksi = tab === 'per_transaksi' || tab === 'diskon';
-            const isSales = ['all_sales', 'tunai', 'qris', 'tempo'].includes(tab);
+            const isSales = ['all_sales', 'tunai', 'qris'].includes(tab);
 
             if (isPerTransaksi) {
                 thead.innerHTML = `<tr>
@@ -3731,6 +3859,17 @@
                     <th class="px-4 py-3 font-medium text-right">Total Bersih</th>
                     <th class="px-4 py-3 font-medium">Metode</th>
                     <th class="px-4 py-3 font-medium">Toko / Kasir</th>
+                    <th class="px-4 py-3 font-medium text-center">Aksi</th>
+                </tr>`;
+            } else if (tab === 'tempo') {
+                thead.innerHTML = `<tr>
+                    <th class="px-4 py-3 font-medium">No. Nota & Waktu</th>
+                    <th class="px-4 py-3 font-medium">Pelanggan & Item</th>
+                    <th class="px-4 py-3 font-medium text-right">Total Piutang</th>
+                    <th class="px-4 py-3 font-medium text-right">Sudah Dibayar</th>
+                    <th class="px-4 py-3 font-medium text-right">Sisa Piutang</th>
+                    <th class="px-4 py-3 font-medium">Status & Keterangan</th>
+                    <th class="px-4 py-3 font-medium">Catatan (Note)</th>
                     <th class="px-4 py-3 font-medium text-center">Aksi</th>
                 </tr>`;
             } else if (isSales) {
@@ -3747,12 +3886,12 @@
             } else if (tab === 'inbound' || tab === 'hutang_supplier') {
                 thead.innerHTML = `<tr>
                     <th class="px-4 py-3 font-medium">Tanggal</th>
-                    <th class="px-4 py-3 font-medium">Barang</th>
-                    <th class="px-4 py-3 font-medium">Qty</th>
-                    <th class="px-4 py-3 font-medium">Supplier</th>
-                    <th class="px-4 py-3 font-medium text-right">Harga Beli</th>
+                    <th class="px-4 py-3 font-medium">Barang & Supplier</th>
+                    <th class="px-4 py-3 font-medium text-right">Total Harga</th>
+                    <th class="px-4 py-3 font-medium text-right">Sudah Dibayar</th>
+                    <th class="px-4 py-3 font-medium text-right">Sisa</th>
                     <th class="px-4 py-3 font-medium">Status & Jatuh Tempo</th>
-                    <th class="px-4 py-3 font-medium">Toko / Petugas</th>
+                    <th class="px-4 py-3 font-medium">Catatan (Note)</th>
                     <th class="px-4 py-3 font-medium text-center">Aksi</th>
                 </tr>`;
             } else if (tab === 'rusak') {
@@ -3801,11 +3940,40 @@
                         <td class="px-4 py-3 text-xs"><div class="font-semibold">${r.Resto}</div><div class="text-[10px] text-slate-400">${r.Petugas}</div></td>
                         <td class="px-4 py-3 text-center"><button onclick="reprintPosReceipt('${r.ID}')" class="text-blue-600 hover:bg-blue-50 p-1.5 rounded" title="Cetak Struk Nota"><i class="fa-solid fa-print"></i></button></td>
                     </tr>`;
+                } else if (tab === 'tempo') {
+                    const meta = getPaymentProgressMeta(r.TotalTagihan, r.JumlahBayar, r.StatusPiutang);
+                    const noteHtml = r.CatatanPiutang
+                        ? `<div class="text-xs text-slate-700 bg-slate-100 border border-slate-200 rounded-lg p-2 whitespace-normal max-w-[230px] leading-relaxed">${r.CatatanPiutang}</div>`
+                        : `<span class="text-xs text-slate-400 italic">Belum ada catatan</span>`;
+
+                    return `<tr class="hover:bg-slate-50 align-top ${meta.code === 'CICIL' ? 'bg-amber-50/30' : (meta.code === 'BELUM LUNAS' ? 'bg-rose-50/20' : '')}">
+                        <td class="px-4 py-3">
+                            <div class="font-bold font-mono text-xs text-blue-600">${r.ID}</div>
+                            <div class="text-[10px] text-slate-400">${r.Tanggal}</div>
+                            <div class="text-[10px] text-slate-500 mt-0.5">${r.Resto} • ${r.Petugas}</div>
+                        </td>
+                        <td class="px-4 py-3 text-xs whitespace-normal max-w-[220px]">
+                            <div class="font-bold text-slate-800">${r.InfoTempo && r.InfoTempo !== '-' ? r.InfoTempo : 'Pelanggan Tempo'}</div>
+                            <div class="text-[11px] text-slate-500 mt-0.5">${r.ItemsSummary.join(', ')}</div>
+                        </td>
+                        <td class="px-4 py-3 text-right font-bold text-slate-800">${formatRupiah(r.TotalTagihan)}</td>
+                        <td class="px-4 py-3 text-right font-bold text-emerald-600">${formatRupiah(meta.paid)}</td>
+                        <td class="px-4 py-3 text-right font-extrabold ${meta.remaining > 0 ? 'text-rose-600' : 'text-slate-400'}">${formatRupiah(meta.remaining)}</td>
+                        <td class="px-4 py-3">
+                            <span class="inline-block px-2.5 py-1 rounded-full text-[10px] font-extrabold ${meta.badgeClass}">${meta.label}</span>
+                        </td>
+                        <td class="px-4 py-3">${noteHtml}</td>
+                        <td class="px-4 py-3 text-center whitespace-nowrap">
+                            <button onclick="openEditPaymentModal('piutang', '${r.ID}')" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-sm transition inline-flex items-center gap-1.5 mr-1" title="Edit Pembayaran / Cicilan & Catatan">
+                                <i class="fa-solid fa-pen-to-square"></i> Edit / Cicil
+                            </button>
+                            <button onclick="reprintPosReceipt('${r.ID}')" class="text-slate-600 hover:bg-slate-100 p-1.5 rounded-lg border border-slate-200" title="Cetak Struk"><i class="fa-solid fa-print"></i></button>
+                        </td>
+                    </tr>`;
                 } else if (isSales) {
                     const metode = r.MetodeBayar || 'Tunai';
                     let badge = 'bg-emerald-100 text-emerald-700';
                     if (metode === 'QRIS') badge = 'bg-blue-100 text-blue-700';
-                    else if (metode === 'Tempo') badge = 'bg-amber-100 text-amber-800';
 
                     return `<tr class="hover:bg-slate-50">
                         <td class="px-4 py-3"><div class="font-bold font-mono text-xs text-blue-600">${r.ID}</div><div class="text-[10px] text-slate-400">${r.Tanggal}</div></td>
@@ -3814,27 +3982,38 @@
                         <td class="px-4 py-3 text-xs">${formatRupiah(r.HargaSatuan)}</td>
                         <td class="px-4 py-3">${formatDiscountBadgeHtml(r.TipeDiskon, r.NilaiDiskon, r.NominalDiskon)}</td>
                         <td class="px-4 py-3 font-bold text-emerald-600">${formatRupiah(r.TotalHarga)}</td>
-                        <td class="px-4 py-3"><span class="px-2 py-0.5 rounded text-[10px] font-bold ${badge}">${metode}</span>${r.InfoTempo && r.InfoTempo !== '-' ? `<div class="text-[10px] text-amber-700 mt-0.5">${r.InfoTempo}</div>` : ''}</td>
+                        <td class="px-4 py-3"><span class="px-2 py-0.5 rounded text-[10px] font-bold ${badge}">${metode}</span></td>
                         <td class="px-4 py-3 text-xs"><div class="font-semibold">${r.Resto}</div><div class="text-[10px] text-slate-400">${r.Petugas}</div></td>
                     </tr>`;
                 } else if (tab === 'inbound' || tab === 'hutang_supplier') {
-                    const isBelumLunas = String(r.StatusHutang || '').toLowerCase() === 'belum lunas' || (r.TempoSupplier && r.TempoSupplier !== '-' && String(r.StatusHutang || '').toLowerCase() !== 'lunas');
-                    const statusBadge = isBelumLunas
-                        ? `<span class="bg-rose-100 text-rose-700 font-bold px-2 py-0.5 rounded text-[10px]">BELUM LUNAS (HUTANG)</span>`
-                        : `<span class="bg-emerald-100 text-emerald-700 font-bold px-2 py-0.5 rounded text-[10px]">LUNAS</span>`;
-                    const lunasBtn = isBelumLunas
-                        ? `<button onclick="markSupplierDebtPaid('${r.ID}')" class="bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold px-2.5 py-1 rounded shadow-sm transition"><i class="fa-solid fa-check mr-1"></i>Lunasi</button>`
-                        : `<span class="text-xs text-slate-400">-</span>`;
+                    const totalBeli = parseCleanNumber(r.HargaBeli, 0);
+                    const meta = getPaymentProgressMeta(totalBeli, r.JumlahBayar, r.StatusHutang);
+                    const noteHtml = r.Catatan
+                        ? `<div class="text-xs text-slate-700 bg-slate-100 border border-slate-200 rounded-lg p-2 whitespace-normal max-w-[230px] leading-relaxed">${r.Catatan}</div>`
+                        : `<span class="text-xs text-slate-400 italic">Belum ada catatan</span>`;
 
-                    return `<tr class="hover:bg-slate-50 ${isBelumLunas ? 'bg-rose-50/30' : ''}">
-                        <td class="px-4 py-3 text-xs">${r.Tanggal}</td>
-                        <td class="px-4 py-3"><div class="font-medium">${r.NamaBahan}</div><div class="text-[10px] font-mono text-slate-400">${r.KodeBahan}</div></td>
-                        <td class="px-4 py-3 font-bold text-emerald-600">${Math.abs(parseFloat(r.Qty))} <span class="text-xs font-normal">${r.Satuan}</span></td>
-                        <td class="px-4 py-3 text-xs font-semibold">${r.Supplier || '-'}</td>
-                        <td class="px-4 py-3 text-right font-bold text-slate-800">${formatRupiah(parseCleanNumber(r.HargaBeli, 0))}</td>
-                        <td class="px-4 py-3 text-xs">${statusBadge}${r.TempoSupplier && r.TempoSupplier !== '-' ? `<div class="text-[10px] text-amber-800 font-bold mt-0.5">Tempo: ${r.TempoSupplier}</div>` : ''}</td>
-                        <td class="px-4 py-3 text-xs"><div class="font-semibold">${r.Resto}</div><div class="text-[10px] text-slate-400">${r.Petugas}</div></td>
-                        <td class="px-4 py-3 text-center">${lunasBtn}</td>
+                    return `<tr class="hover:bg-slate-50 align-top ${meta.code === 'CICIL' ? 'bg-amber-50/30' : (meta.code === 'BELUM LUNAS' ? 'bg-rose-50/20' : '')}">
+                        <td class="px-4 py-3 text-xs">
+                            <div class="font-semibold text-slate-800">${r.Tanggal}</div>
+                            <div class="text-[10px] text-slate-400 mt-0.5">${r.Resto} • ${r.Petugas}</div>
+                        </td>
+                        <td class="px-4 py-3">
+                            <div class="font-bold text-slate-800">${r.NamaBahan} <span class="text-emerald-600 font-extrabold">(${Math.abs(parseFloat(r.Qty))} ${r.Satuan})</span></div>
+                            <div class="text-xs text-slate-600 mt-0.5"><i class="fa-solid fa-truck-field text-slate-400 mr-1"></i>Supplier: <b>${r.Supplier || '-'}</b></div>
+                        </td>
+                        <td class="px-4 py-3 text-right font-bold text-slate-800">${formatRupiah(totalBeli)}</td>
+                        <td class="px-4 py-3 text-right font-bold text-emerald-600">${formatRupiah(meta.paid)}</td>
+                        <td class="px-4 py-3 text-right font-extrabold ${meta.remaining > 0 ? 'text-rose-600' : 'text-slate-400'}">${formatRupiah(meta.remaining)}</td>
+                        <td class="px-4 py-3 text-xs">
+                            <span class="inline-block px-2.5 py-1 rounded-full text-[10px] font-extrabold ${meta.badgeClass}">${meta.label}</span>
+                            ${r.TempoSupplier && r.TempoSupplier !== '-' ? `<div class="text-[10px] text-amber-800 font-bold mt-1"><i class="fa-solid fa-calendar-day mr-1"></i>Tempo: ${r.TempoSupplier}</div>` : ''}
+                        </td>
+                        <td class="px-4 py-3">${noteHtml}</td>
+                        <td class="px-4 py-3 text-center whitespace-nowrap">
+                            <button onclick="openEditPaymentModal('inbound', '${r.ID}')" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-sm transition inline-flex items-center gap-1.5" title="Edit Pembayaran / Cicilan & Catatan">
+                                <i class="fa-solid fa-pen-to-square"></i> Edit / Cicil
+                            </button>
+                        </td>
                     </tr>`;
                 } else if (tab === 'rusak') {
                     return `<tr class="hover:bg-slate-50">
@@ -3858,24 +4037,211 @@
             info.textContent = `Menampilkan ${start + 1} - ${Math.min(start + 10, State.lapFiltered.length)} dari ${State.lapFiltered.length} data`;
         }
 
-        function markSupplierDebtPaid(id) {
+        // === MODAL EDIT CICILAN / PELUNASAN & CATATAN (PIUTANG, HUTANG, BARANG MASUK) ===
+        function openEditPaymentModal(kind, id) {
+            let title = '';
+            let refInfo = '';
+            let entityInfo = '';
+            let totalTagihan = 0;
+            let currentPaid = 0;
+            let currentNote = '';
+
+            if (kind === 'piutang') {
+                const grouped = buildGroupedTempoPiutang(State.salesHistory);
+                const item = grouped.find(g => String(g.ID).trim() === String(id).trim());
+                if (!item) return Swal.fire('Error', 'Data piutang tidak ditemukan.', 'error');
+
+                title = 'Edit Pembayaran Piutang Pelanggan';
+                refInfo = item.ID;
+                entityInfo = item.InfoTempo && item.InfoTempo !== '-' ? item.InfoTempo : 'Pelanggan Tempo';
+                totalTagihan = item.TotalTagihan;
+                currentPaid = item.JumlahBayar;
+                currentNote = item.CatatanPiutang || '';
+            } else {
+                const item = (State.inHistory || []).find(i => String(i.ID).trim() === String(id).trim());
+                if (!item) return Swal.fire('Error', 'Data transaksi barang masuk tidak ditemukan.', 'error');
+
+                const meta = getPaymentProgressMeta(item.HargaBeli, item.JumlahBayar, item.StatusHutang);
+                title = 'Edit Pembayaran Hutang / Barang Masuk';
+                refInfo = `${item.NamaBahan} (${Math.abs(parseFloat(item.Qty))} ${item.Satuan})`;
+                entityInfo = `Supplier: ${item.Supplier || '-'}${item.TempoSupplier && item.TempoSupplier !== '-' ? ' | Tempo: ' + item.TempoSupplier : ''}`;
+                totalTagihan = parseCleanNumber(item.HargaBeli, 0);
+                currentPaid = meta.paid;
+                currentNote = item.Catatan || '';
+            }
+
+            const initMeta = getPaymentProgressMeta(totalTagihan, currentPaid, currentPaid >= totalTagihan ? 'Lunas' : 'Belum Lunas');
+
             Swal.fire({
-                title: 'Lunasi Hutang Supplier?',
-                text: 'Status transaksi barang masuk ini akan diubah menjadi Lunas.',
-                icon: 'question',
+                title: title,
+                width: '540px',
+                html: `
+                    <div class="text-left space-y-3.5 mt-2">
+                        <div class="bg-blue-50/80 border border-blue-200 rounded-xl p-3.5 space-y-1.5 text-xs">
+                            <div class="flex justify-between gap-2">
+                                <span class="text-slate-500">Referensi / Item:</span>
+                                <span class="font-bold text-slate-800 text-right">${refInfo}</span>
+                            </div>
+                            <div class="flex justify-between gap-2">
+                                <span class="text-slate-500">Keterangan:</span>
+                                <span class="font-semibold text-slate-700 text-right">${entityInfo}</span>
+                            </div>
+                            <div class="border-t border-blue-200 pt-2 flex justify-between items-center">
+                                <span class="font-bold text-slate-700">Total Tagihan Awal:</span>
+                                <span class="text-base font-extrabold text-blue-700">${formatRupiah(totalTagihan)}</span>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 mb-1">Total Sudah Dibayar (Rp)</label>
+                                <input type="number" id="swalEditPaidInput" min="0" value="${currentPaid}" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm font-bold text-slate-800 outline-none focus:ring-2 focus:ring-blue-500">
+                                <div class="flex flex-wrap gap-1.5 mt-2">
+                                    <button type="button" id="btnSwalFullPaid" class="text-[11px] font-bold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 px-2.5 py-1 rounded-lg transition">
+                                        <i class="fa-solid fa-check-double mr-1"></i>Bayar Penuh (Lunas)
+                                    </button>
+                                    <button type="button" id="btnSwalToggleCicil" class="text-[11px] font-bold bg-amber-50 text-amber-800 hover:bg-amber-100 border border-amber-200 px-2.5 py-1 rounded-lg transition">
+                                        <i class="fa-solid fa-plus mr-1"></i>Tambah Cicilan
+                                    </button>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 mb-1">Sisa Tagihan (Otomatis)</label>
+                                <div id="swalEditSisaBox" class="w-full border border-slate-200 bg-slate-100 rounded-lg px-3 py-2 text-sm font-extrabold ${initMeta.remaining === 0 ? 'text-emerald-600' : 'text-rose-600'}">
+                                    ${formatRupiah(initMeta.remaining)}
+                                </div>
+                                <div class="mt-2">
+                                    <span id="swalEditStatusBadge" class="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-extrabold ${initMeta.badgeClass}">
+                                        ${initMeta.label}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="swalQuickCicilWrap" class="hidden bg-amber-50 border border-amber-200 rounded-xl p-3 space-y-2">
+                            <label class="block text-xs font-bold text-amber-900">Nominal Cicilan Masuk Sekarang (Rp):</label>
+                            <div class="flex gap-2">
+                                <input type="number" id="swalQuickCicilVal" min="1" placeholder="Contoh: 250000" class="flex-1 border border-amber-300 bg-white rounded-lg px-3 py-1.5 text-sm font-bold outline-none focus:ring-2 focus:ring-amber-500">
+                                <button type="button" id="btnSwalApplyCicil" class="bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition">
+                                    Tambahkan
+                                </button>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">Catatan / Keterangan Pembayaran (Note)</label>
+                            <textarea id="swalEditNoteInput" rows="3" placeholder="Contoh: Cicil ke-1 via Transfer BCA Rp 500.000, sisa dibayar minggu depan..." class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-700 outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+                            <p class="text-[10px] text-slate-400 mt-1">Jika sudah dibayar penuh status otomatis menjadi <b>LUNAS</b>. Jika dibayar sebagian status otomatis <b>CICIL</b> beserta nominal sisanya.</p>
+                        </div>
+                    </div>
+                `,
                 showCancelButton: true,
-                confirmButtonColor: '#059669',
-                confirmButtonText: 'Ya, Tandai Lunas'
-            }).then(r => {
-                if (r.isConfirmed) {
-                    Swal.fire({title: 'Memperbarui...', allowOutsideClick: false, didOpen: () => Swal.showLoading()});
-                    runGas('paySupplierDebt', id).then(d => {
+                confirmButtonText: '<i class="fa-solid fa-save mr-1"></i> Simpan Perubahan',
+                confirmButtonColor: '#2563eb',
+                cancelButtonText: 'Batal',
+                didOpen: () => {
+                    const paidInp = document.getElementById('swalEditPaidInput');
+                    const sisaBox = document.getElementById('swalEditSisaBox');
+                    const statusBadge = document.getElementById('swalEditStatusBadge');
+                    const noteInp = document.getElementById('swalEditNoteInput');
+                    const quickWrap = document.getElementById('swalQuickCicilWrap');
+                    const quickValInp = document.getElementById('swalQuickCicilVal');
+
+                    noteInp.value = currentNote || '';
+
+                    const refreshPreview = () => {
+                        let val = parseFloat(paidInp.value) || 0;
+                        if (totalTagihan > 0 && val > totalTagihan) {
+                            val = totalTagihan;
+                            paidInp.value = totalTagihan;
+                        }
+                        if (val < 0) {
+                            val = 0;
+                            paidInp.value = 0;
+                        }
+                        const m = getPaymentProgressMeta(totalTagihan, val, val >= totalTagihan ? 'Lunas' : 'Belum Lunas');
+                        sisaBox.textContent = formatRupiah(m.remaining);
+                        sisaBox.className = `w-full border border-slate-200 bg-slate-100 rounded-lg px-3 py-2 text-sm font-extrabold ${m.remaining === 0 ? 'text-emerald-600' : 'text-rose-600'}`;
+                        statusBadge.textContent = m.label;
+                        statusBadge.className = `inline-block px-2.5 py-0.5 rounded-full text-[10px] font-extrabold ${m.badgeClass}`;
+                    };
+
+                    paidInp.addEventListener('input', refreshPreview);
+
+                    document.getElementById('btnSwalFullPaid').addEventListener('click', () => {
+                        paidInp.value = totalTagihan;
+                        refreshPreview();
+                        const today = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+                        if (!noteInp.value.toLowerCase().includes('lunas')) {
+                            noteInp.value = (noteInp.value ? noteInp.value + '\n' : '') + `• Dilunasi penuh (${today}) -> LUNAS.`;
+                        }
+                    });
+
+                    document.getElementById('btnSwalToggleCicil').addEventListener('click', () => {
+                        quickWrap.classList.toggle('hidden');
+                        if (!quickWrap.classList.contains('hidden')) quickValInp.focus();
+                    });
+
+                    document.getElementById('btnSwalApplyCicil').addEventListener('click', () => {
+                        const addNom = parseFloat(quickValInp.value) || 0;
+                        if (addNom <= 0) return;
+                        const prevPaid = parseFloat(paidInp.value) || 0;
+                        const nextPaid = totalTagihan > 0 ? Math.min(totalTagihan, prevPaid + addNom) : (prevPaid + addNom);
+                        paidInp.value = nextPaid;
+                        refreshPreview();
+
+                        const rem = Math.max(0, totalTagihan - nextPaid);
+                        const today = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+                        const autoText = rem === 0
+                            ? `Cicil masuk ${formatRupiah(addNom)} (${today}) -> LUNAS.`
+                            : `Cicil masuk ${formatRupiah(addNom)} (${today}), sisa ${formatRupiah(rem)}.`;
+                        noteInp.value = noteInp.value ? `${noteInp.value}\n• ${autoText}` : `• ${autoText}`;
+
+                        quickValInp.value = '';
+                        quickWrap.classList.add('hidden');
+                    });
+                },
+                preConfirm: () => {
+                    return {
+                        paidAmount: parseFloat(document.getElementById('swalEditPaidInput').value) || 0,
+                        note: document.getElementById('swalEditNoteInput').value.trim()
+                    };
+                }
+            }).then(res => {
+                if (!res.isConfirmed) return;
+                Swal.fire({ title: 'Menyimpan Pembayaran...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+                if (kind === 'piutang') {
+                    runGas('updateCustomerDebt', {
+                        baseNota: id,
+                        paidAmount: res.value.paidAmount,
+                        note: res.value.note
+                    }).then(d => {
                         syncLocalState(d, false);
                         renderLaporanData();
-                        Swal.fire('Berhasil', 'Hutang supplier telah ditandai Lunas.', 'success');
-                    }).catch(e => Swal.fire('Error', 'Gagal memperbarui status hutang.', 'error'));
+                        Swal.fire('Berhasil!', 'Status pembayaran piutang & catatan berhasil diperbarui.', 'success');
+                    }).catch(err => {
+                        Swal.fire('Gagal Menyimpan', `${err.message || 'Gagal menghubungi server.'}<br><br><span class="text-xs text-slate-500">Pastikan Anda sudah klik <b>Deploy > Kelola deployment > Edit > Versi baru</b> di Google Apps Script.</span>`, 'error');
+                    });
+                } else {
+                    runGas('updateInboundPayment', {
+                        id: id,
+                        paidAmount: res.value.paidAmount,
+                        note: res.value.note
+                    }).then(d => {
+                        syncLocalState(d, false);
+                        renderLaporanData();
+                        if (State.currentView === 'inbound') filterScanHistory();
+                        Swal.fire('Berhasil!', 'Status pembayaran & catatan berhasil diperbarui.', 'success');
+                    }).catch(err => {
+                        Swal.fire('Gagal Menyimpan', `${err.message || 'Gagal menghubungi server.'}<br><br><span class="text-xs text-slate-500">Pastikan Anda sudah klik <b>Deploy > Kelola deployment > Edit > Versi baru</b> di Google Apps Script.</span>`, 'error');
+                    });
                 }
             });
+        }
+
+        function markSupplierDebtPaid(id) {
+            openEditPaymentModal('inbound', id);
         }
 
         function changeLapPage(d) {
@@ -3906,16 +4272,18 @@
             };
             const title = titleMap[tab] || 'Laporan Transaksi';
             const isPerTransaksi = tab === 'per_transaksi' || tab === 'diskon';
-            const isSales = ['all_sales', 'tunai', 'qris', 'tempo'].includes(tab);
+            const isSales = ['all_sales', 'tunai', 'qris'].includes(tab);
             const columns = isPerTransaksi
                 ? ['ID', 'Tanggal', 'TotalQty', 'Subtotal', 'TipeDiskon', 'NilaiDiskon', 'NominalDiskon', 'TotalOmzet', 'MetodeBayar', 'InfoTempo', 'Petugas', 'Resto']
-                : (isSales
-                    ? ['ID', 'Tanggal', 'KodeBahan', 'NamaBahan', 'Qty', 'Satuan', 'HargaSatuan', 'Subtotal', 'TipeDiskon', 'NilaiDiskon', 'NominalDiskon', 'TotalHarga', 'MetodeBayar', 'InfoTempo', 'Petugas', 'Resto']
-                    : ((tab === 'inbound' || tab === 'hutang_supplier')
-                        ? ['ID', 'Tanggal', 'KodeBahan', 'NamaBahan', 'Qty', 'Satuan', 'Supplier', 'HargaBeli', 'StatusHutang', 'TempoSupplier', 'Petugas', 'Resto']
-                        : (tab === 'rusak'
-                            ? ['ID', 'Tanggal', 'KodeBahan', 'NamaBahan', 'Kategori', 'Qty', 'Satuan', 'Keterangan', 'Petugas', 'Resto']
-                            : ['ID', 'Tanggal', 'KodeBahan', 'NamaBahan', 'Kategori', 'Qty', 'Satuan', 'Petugas', 'Resto'])));
+                : (tab === 'tempo'
+                    ? ['ID', 'Tanggal', 'InfoTempo', 'TotalTagihan', 'JumlahBayar', 'SisaPiutang', 'StatusLabel', 'CatatanPiutang', 'Petugas', 'Resto']
+                    : (isSales
+                        ? ['ID', 'Tanggal', 'KodeBahan', 'NamaBahan', 'Qty', 'Satuan', 'HargaSatuan', 'Subtotal', 'TipeDiskon', 'NilaiDiskon', 'NominalDiskon', 'TotalHarga', 'MetodeBayar', 'Petugas', 'Resto']
+                        : ((tab === 'inbound' || tab === 'hutang_supplier')
+                            ? ['ID', 'Tanggal', 'KodeBahan', 'NamaBahan', 'Qty', 'Satuan', 'Supplier', 'HargaBeli', 'JumlahBayar', 'SisaHutang', 'StatusHutang', 'TempoSupplier', 'Catatan', 'Petugas', 'Resto']
+                            : (tab === 'rusak'
+                                ? ['ID', 'Tanggal', 'KodeBahan', 'NamaBahan', 'Kategori', 'Qty', 'Satuan', 'Keterangan', 'Petugas', 'Resto']
+                                : ['ID', 'Tanggal', 'KodeBahan', 'NamaBahan', 'Kategori', 'Qty', 'Satuan', 'Petugas', 'Resto']))));
 
             const fileName = `${title.replace(/ /g, '_')}_${new Date().toLocaleDateString('id-ID').replace(/\//g, '-')}`;
 
@@ -4712,18 +5080,22 @@
                             </td></tr>`;
                         } else if (State.transactionType === 'inbound') {
                             const hargaBeliNum = parseCleanNumber(r.HargaBeli, 0);
-                            const isHutang = String(r.StatusHutang || '').toLowerCase() === 'belum lunas' || (r.TempoSupplier && r.TempoSupplier !== '-' && String(r.StatusHutang || '').toLowerCase() !== 'lunas');
+                            const meta = getPaymentProgressMeta(hargaBeliNum, r.JumlahBayar, r.StatusHutang);
                             const hargaBadge = hargaBeliNum > 0
-                                ? `<div class="text-[11px] font-bold text-slate-800">${formatRupiah(hargaBeliNum)} <span class="px-1.5 py-0.5 rounded text-[9px] ${isHutang ? 'bg-rose-100 text-rose-700' : 'bg-emerald-100 text-emerald-700'}">${isHutang ? 'HUTANG' : 'LUNAS'}</span></div>`
+                                ? `<div class="text-[11px] font-bold text-slate-800">${formatRupiah(hargaBeliNum)} <span class="px-1.5 py-0.5 rounded text-[9px] ${meta.badgeClass}">${meta.label}</span></div>`
                                 : '';
                             const tempoBadge = (r.TempoSupplier && r.TempoSupplier !== '-')
                                 ? `<div class="text-[10px] font-bold text-amber-700 mt-0.5"><i class="fa-solid fa-clock mr-1"></i>Tempo: ${r.TempoSupplier}</div>`
                                 : '';
+                            const noteBadge = r.Catatan
+                                ? `<div class="text-[10px] text-slate-600 italic mt-0.5 max-w-[220px] whitespace-normal">Note: ${r.Catatan}</div>`
+                                : '';
                             return `<tr class="hover:bg-slate-50"><td class="px-5 py-3 text-xs">${r.Tanggal}</td><td class="px-5 py-3"><div class="font-medium">${r.NamaBahan}</div><div class="text-[10px] font-mono text-slate-500">${r.KodeBahan}</div></td>
                             <td class="px-5 py-3 font-bold text-emerald-600">${Math.abs(parseFloat(r.Qty))} <span class="text-xs font-normal">${r.Satuan}</span></td>
-                            <td class="px-5 py-3 text-xs"><div class="font-semibold text-slate-700">${r.Supplier || '-'}</div>${hargaBadge}${tempoBadge}</td>
+                            <td class="px-5 py-3 text-xs"><div class="font-semibold text-slate-700">${r.Supplier || '-'}</div>${hargaBadge}${tempoBadge}${noteBadge}</td>
                             <td class="px-5 py-3 text-xs">${r.Resto}</td>
                             <td class="px-5 py-3 text-center whitespace-nowrap">
+                            <button onclick="openEditPaymentModal('inbound', '${r.ID}')" class="text-emerald-600 hover:bg-emerald-50 p-1.5 rounded mr-1" title="Edit Cicilan / Pelunasan & Catatan"><i class="fa-solid fa-wallet"></i></button>
                             <button onclick="viewTransactionDetail('${r.ID}')" class="text-blue-500 hover:bg-blue-50 p-1.5 rounded mr-1" title="Lihat Detail"><i class="fa-solid fa-eye"></i></button>
                             <button onclick="editTransactionModal('${r.ID}', 'inbound')" class="text-amber-500 hover:bg-amber-50 p-1.5 rounded mr-1" title="Edit Riwayat"><i class="fa-solid fa-pen"></i></button>
                             <button onclick="deleteTransaction('${r.ID}', 'inbound')" class="text-red-500 hover:bg-red-50 p-1.5 rounded" title="Hapus & Rollback Stock"><i class="fa-solid fa-trash"></i></button>
@@ -4781,7 +5153,7 @@
                 extraFields = `<div><label class="block text-xs font-medium text-slate-500 mb-1">Keterangan / Alasan</label><input type="text" id="editTrxKet" class="w-full border border-slate-300 px-3 py-2 text-sm rounded-lg outline-none focus:ring-2 focus:ring-blue-500" value="${trx.Keterangan || ''}"></div>`;
             } else if (type === 'inbound') {
                 const supOpts = (State.suppliers || []).map(s => `<option value="${s.NamaSupplier}">`).join('');
-                const isHutang = String(trx.StatusHutang || '').toLowerCase() === 'belum lunas';
+                const isHutang = String(trx.StatusHutang || '').toLowerCase() === 'belum lunas' || String(trx.StatusHutang || '').toLowerCase() === 'cicil';
                 extraFields = `
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         <div>
@@ -5051,7 +5423,7 @@
                 if (State.currentView === 'rusak') {
                     columns = ['Tanggal', 'KodeBahan', 'NamaBahan', 'Kategori', 'Qty', 'Satuan', 'Keterangan', 'Petugas', 'Resto'];
                 } else if (State.currentView === 'inbound') {
-                    columns = ['Tanggal', 'KodeBahan', 'NamaBahan', 'Kategori', 'Qty', 'Satuan', 'Supplier', 'TempoSupplier', 'Petugas', 'Resto'];
+                    columns = ['Tanggal', 'KodeBahan', 'NamaBahan', 'Kategori', 'Qty', 'Satuan', 'Supplier', 'HargaBeli', 'JumlahBayar', 'SisaHutang', 'StatusHutang', 'TempoSupplier', 'Catatan', 'Petugas', 'Resto'];
                 } else {
                     columns = ['Tanggal', 'KodeBahan', 'NamaBahan', 'Kategori', 'Qty', 'Satuan', 'Petugas', 'Resto'];
                 }
